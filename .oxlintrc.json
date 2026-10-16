@@ -1,0 +1,11 @@
+{
+  "env": {
+    "node": true,
+    "es2022": true
+  },
+  "ignorePatterns": ["dist/**", "coverage/**", "node_modules/**", ".private/**", "submission/**", ".agents/**"],
+  "rules": {
+    "no-unused-vars": "error",
+    "no-explicit-any": "error"
+  }
+}

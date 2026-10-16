@@ -1,0 +1,14 @@
+node_modules/
+dist/
+coverage/
+.vercel/
+.private/
+submission/
+.agents/
+data/
+docs/
+test/fixtures/
+AGENTS.md
+CHANGELOG.md
+README.md
+package-lock.json
