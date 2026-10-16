@@ -1,0 +1,17 @@
+# --- confidential / not for the public repo ---
+.private/
+submission/
+.agents/handoff/
+
+# --- env ---
+.env
+.env.*
+!.env.example
+
+# --- build & tooling ---
+node_modules/
+dist/
+coverage/
+.vercel/
+*.log
+.DS_Store

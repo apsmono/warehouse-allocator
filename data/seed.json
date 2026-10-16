@@ -1,0 +1,201 @@
+{
+  "_comment": "Canonical seed data. READ-ONLY for the executor. requiresColdChain is a modelling assumption (PRD A1/A2), not given data.",
+  "products": [
+    {
+      "id": "P001",
+      "name": "Surgical Gloves (Box of 100)",
+      "category": "Medical Supplies",
+      "requiresColdChain": false
+    },
+    {
+      "id": "P002",
+      "name": "Vaccine — Hepatitis B (10-dose vial)",
+      "category": "Pharmaceutical",
+      "requiresColdChain": true
+    },
+    {
+      "id": "P003",
+      "name": "Disposable Syringe (Box of 50)",
+      "category": "Medical Supplies",
+      "requiresColdChain": false
+    },
+    {
+      "id": "P004",
+      "name": "Vaccine — Tetanus Toxoid (10-dose vial)",
+      "category": "Pharmaceutical",
+      "requiresColdChain": true
+    },
+    {
+      "id": "P005",
+      "name": "Paracetamol Tablets (Box of 100)",
+      "category": "Pharmaceutical",
+      "requiresColdChain": false
+    }
+  ],
+  "warehouses": [
+    {
+      "id": "W01",
+      "city": "Surabaya",
+      "distanceKm": 5,
+      "hasColdStorage": false,
+      "hasColdFleet": false,
+      "stock": [
+        {
+          "productId": "P001",
+          "quantity": 200
+        },
+        {
+          "productId": "P003",
+          "quantity": 500
+        },
+        {
+          "productId": "P005",
+          "quantity": 300
+        }
+      ]
+    },
+    {
+      "id": "W02",
+      "city": "Surabaya",
+      "distanceKm": 12,
+      "hasColdStorage": true,
+      "hasColdFleet": false,
+      "stock": [
+        {
+          "productId": "P001",
+          "quantity": 50
+        },
+        {
+          "productId": "P002",
+          "quantity": 30
+        },
+        {
+          "productId": "P004",
+          "quantity": 20
+        }
+      ]
+    },
+    {
+      "id": "W03",
+      "city": "Sidoarjo",
+      "distanceKm": 25,
+      "hasColdStorage": false,
+      "hasColdFleet": false,
+      "stock": [
+        {
+          "productId": "P001",
+          "quantity": 300
+        },
+        {
+          "productId": "P003",
+          "quantity": 200
+        }
+      ]
+    },
+    {
+      "id": "W04",
+      "city": "Gresik",
+      "distanceKm": 30,
+      "hasColdStorage": true,
+      "hasColdFleet": true,
+      "stock": [
+        {
+          "productId": "P002",
+          "quantity": 40
+        },
+        {
+          "productId": "P004",
+          "quantity": 25
+        },
+        {
+          "productId": "P005",
+          "quantity": 100
+        }
+      ]
+    },
+    {
+      "id": "W05",
+      "city": "Malang",
+      "distanceKm": 90,
+      "hasColdStorage": false,
+      "hasColdFleet": false,
+      "stock": [
+        {
+          "productId": "P001",
+          "quantity": 400
+        },
+        {
+          "productId": "P003",
+          "quantity": 300
+        },
+        {
+          "productId": "P005",
+          "quantity": 500
+        }
+      ]
+    },
+    {
+      "id": "W06",
+      "city": "Malang",
+      "distanceKm": 95,
+      "hasColdStorage": true,
+      "hasColdFleet": false,
+      "stock": [
+        {
+          "productId": "P002",
+          "quantity": 20
+        },
+        {
+          "productId": "P003",
+          "quantity": 100
+        },
+        {
+          "productId": "P004",
+          "quantity": 30
+        }
+      ]
+    },
+    {
+      "id": "W07",
+      "city": "Pasuruan",
+      "distanceKm": 45,
+      "hasColdStorage": true,
+      "hasColdFleet": true,
+      "stock": [
+        {
+          "productId": "P001",
+          "quantity": 150
+        },
+        {
+          "productId": "P002",
+          "quantity": 8
+        },
+        {
+          "productId": "P004",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "id": "W08",
+      "city": "Jember",
+      "distanceKm": 150,
+      "hasColdStorage": true,
+      "hasColdFleet": true,
+      "stock": [
+        {
+          "productId": "P002",
+          "quantity": 60
+        },
+        {
+          "productId": "P004",
+          "quantity": 50
+        },
+        {
+          "productId": "P005",
+          "quantity": 200
+        }
+      ]
+    }
+  ]
+}
