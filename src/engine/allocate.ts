@@ -290,6 +290,7 @@ export function allocate(
   const explainInput = {
     status,
     strategy,
+    allowSplit,
     dispatchAt: options?.dispatchAt,
     mergedLines,
     snapshot,
@@ -300,6 +301,7 @@ export function allocate(
     costUnit,
     shipmentOverhead,
     allSurvivors: allSurvivorsSummary,
+    getTotalEligibleStock,
   };
 
   const summary = buildSummary(explainInput);
