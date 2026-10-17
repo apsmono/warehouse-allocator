@@ -5,10 +5,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-17
+
+### Added
+- Pure warehouse allocation engine (M1, `ENGINE_VERSION = "1.0.0"`): line normalisation, cold-chain and stock eligibility with exclusion tracking (`NO_COLD_FLEET`, `NO_COLD_STORAGE`), exhaustive subset enumeration and lexicographic ranking, deterministic explanation templates (`summary`, `reasons`, `alternatives[].whyNot`), and `StrategyNotAvailableError` for `time-aware` prior to M4.
+- Engine test suite: 16 golden distance/no-split scenarios, property-based tests P1–P6 (`fast-check`, 200 runs each), edge-case unit tests, and static engine purity verification (`test/purity.test.ts`).
+- Explanation test suite (`test/engine/explain.test.ts`) and refined explanation synthesis enforcing 2–6 `reasons` sentences, accurate eligible stock totals, single-shipment shortfall attribution, merged cold-chain/warehouse exclusions, and truthful nearest-warehouse phrasing.
+
+## [0.0.1] - 2026-10-16
+
 ### Added
 - Planning docs: PRD, algorithm spec, travel-model spec, API contract, architecture, decision log, roadmap, versioning policy.
 - Canonical seed data (`data/seed.json`), normalised delivery history (`data/delivery_history.csv`) and golden test fixtures (`test/fixtures/golden.json`).
 - Project scaffolding (M0): TypeScript strict ESM config, Vitest with v8 coverage, oxlint, Prettier, GitHub Actions CI workflow and confidential brief-leak check (`scripts/check-no-brief.sh`).
-- Pure warehouse allocation engine (M1, `ENGINE_VERSION = "1.0.0"`): line normalisation, cold-chain and stock eligibility with exclusion tracking (`NO_COLD_FLEET`, `NO_COLD_STORAGE`), exhaustive subset enumeration and lexicographic ranking, deterministic explanation templates (`summary`, `reasons`, `alternatives[].whyNot`), and `StrategyNotAvailableError` for `time-aware` prior to M4.
-- Engine test suite: 16 golden distance/no-split scenarios, property-based tests P1–P6 (`fast-check`, 200 runs each), edge-case unit tests, and static engine purity verification (`test/purity.test.ts`).
-- Explanation test suite (`test/engine/explain.test.ts`) and refined explanation synthesis enforcing 2–6 `reasons` sentences, accurate eligible stock totals, single-shipment shortfall attribution, merged cold-chain/warehouse exclusions, and truthful nearest-warehouse phrasing.
