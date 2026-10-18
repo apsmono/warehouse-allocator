@@ -8,12 +8,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
 ### Added
 - Vanilla HTML/CSS/JS web UI (`public/index.html`, `public/styles.css`, `public/app.js`) served locally via optional `publicDir` in `createApp`: dynamic 1–20 line order builder, split-shipment toggle, three golden example buttons (`G03`, `G09`, `G05`), accessible `aria-live` decision view (status badge, shipments, shortfalls, reasons, exclusions, alternatives, persisted decision link, raw JSON), warehouse stock matrix, and `/api/v1/health` footer.
 - Static UI and CSP hygiene test suite (`test/api/static.test.ts`).
-- Local UI walkthrough in `README.md`.
+- Vercel serverless function entry (`api/index.ts`), `vercel.json` routing/region config (`sin1`), weekly keep-alive workflow (`.github/workflows/keepalive.yml`), and unit tests for config version loading (`test/config.test.ts`), Vercel entry (`test/api/vercel-entry.test.ts`), and pool idle error handling (`test/db/pool.test.ts`).
+- Live demo URL and walkthrough in `README.md`.
 
 ### Changed
+- Local Docker database is Postgres 18 (matches Neon); existing clones get a fresh `pgdata18` volume and must re-run `npm run db:migrate && npm run db:seed`.
+- Replaced runtime `readFileSync` of `package.json` in `src/config.ts` with a static JSON module import for Vercel serverless bundle compatibility.
 - Upgraded GitHub Actions (`actions/checkout@v7`, `actions/setup-node@v7`) to the Node 24 runtime and pinned `ubuntu-24.04` in `.github/workflows/ci.yml`.
 
 ### Fixed
+- Idle database client errors are logged instead of crashing the process (local server and Vercel function).
 - Resolved `.env` and `.env.example` paths relative to the script directory (`import.meta.dirname`) in `scripts/setup.mjs`.
 
 ## [0.2.0] - 2026-10-18
