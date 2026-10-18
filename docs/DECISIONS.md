@@ -27,6 +27,7 @@ submission README's "AI-assisted" section.
 | 008 | Time-aware objective = vehicle-minutes | Accepted | M4 |
 | 009 | Public repo; two READMEs | Accepted (amended) | First push |
 | 010 | Vanilla HTML UI | Accepted | M3 |
+| 011 | Local Postgres in Docker for development; Neon for online preview | Accepted | M2 |
 
 ---
 
@@ -203,3 +204,26 @@ still meet the accessibility basics in M3.
 
 **Alternatives considered.** React + Vite: Arif's strength, but adds a build step and deploy
 config for no grading gain.
+
+## ADR-011 Local Postgres in Docker for development; Neon for online preview
+**Status.** Accepted (2026-10-18)
+
+**Context.** Anyone cloning the repository must be able to run the full application and integration
+tests offline, and using a shared cloud database during development risks test rows reaching the
+online preview.
+
+**Decision.** Two run modes share the exact same application code and switch purely via `DATABASE_URL`:
+
+| Mode | Database | Who | `DATABASE_URL` |
+|---|---|---|---|
+| **Local** (default) | Postgres 16 in Docker, via the committed `docker-compose.yml` | Anyone who clones the repo | `postgresql://wa:wa@localhost:5433/warehouse_allocator` |
+| **Online preview** | Neon (pooled, `sslmode=require`) | The deployed app (M3) | Set in `.env` or Vercel env |
+
+**Consequences.** Docker is a local development prerequisite; `pg` is driven by the connection URL
+alone (no mode flag or custom SSL branching in `pool.ts`); the integration test never targets Neon
+by default.
+
+**Alternatives considered.** Neon `dev` branch for everyone (requires a cloud account and network
+access, and creates shared state across runs); a native Postgres install (setup and port/user
+defaults differ per OS); `pg-mem` or SQLite (not real PostgreSQL — `to_regclass` and `timestamptz`
+behaviour differs).

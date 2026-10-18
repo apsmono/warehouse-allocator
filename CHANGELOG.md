@@ -5,6 +5,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-18
+
+### Added
+- Express 5 HTTP API (`/api/v1/health`, `/api/v1/catalog`, `POST /api/v1/allocations`, `GET /api/v1/allocations/:id`) with strict Zod request validation, rate limiting, and uniform error middleware (`src/api/**`).
+- PostgreSQL persistence layer (`src/db/**`), initial schema migration (`db/migrations/0001_init.sql`), forward-only migrator (`db/migrate.ts`), and idempotent catalogue/history seeder (`db/seed.ts`).
+- Supertest API test suite with in-memory repository stubs (`test/api/*.test.ts`) and opt-in PostgreSQL integration tests (`test/db/integration.test.ts`).
+- Local development database: PostgreSQL 16 via `docker-compose.yml` (port 5433), one-command bootstrap `npm run setup` (`scripts/setup.mjs`), and `db:up` / `db:down` / `test:db` scripts. Neon is used only for the online preview (ADR-011).
+
 ## [0.1.0] - 2026-10-17
 
 ### Added
