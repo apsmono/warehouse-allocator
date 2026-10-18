@@ -8,7 +8,7 @@
 | Language | TypeScript, `strict: true`, ESM | latest 5.x |
 | HTTP | **Express 5** | Async errors propagate natively, so no wrapper helpers |
 | Validation | **Zod** | Schemas in `src/api/schemas.ts` are the single source of request types |
-| Database | **PostgreSQL 16 on Neon** (free tier) | Pooled connection string |
+| Database | PostgreSQL 16: Docker locally, Neon (free tier) online | Pooled connection string |
 | DB access | **`pg` (node-postgres) with plain SQL**, no ORM | Migrations are numbered `.sql` files |
 | UI | **Static HTML + vanilla JS + one CSS file**, served from `public/` | No framework, no bundler |
 | Tests | **Vitest** + **supertest** | |
@@ -27,7 +27,9 @@ warehouse-allocator/
 ├── AGENTS.md                 executor rules (read first)
 ├── README.md                 description, walkthrough, setup / run / test / deploy (ADR-009)
 ├── CHANGELOG.md
-├── package.json  tsconfig.json  .nvmrc  .oxlintrc.json  .prettierrc  vercel.json
+├── package.json  tsconfig.json  .nvmrc  .oxlintrc.json  .prettierrc  vercel.json  docker-compose.yml
+├── scripts/
+│   └── setup.mjs             one-command local bootstrap (Node 22 check, npm ci, .env, Docker DB, migrate, seed)
 ├── data/
 │   ├── seed.json             canonical products, warehouses, stock   (READ-ONLY)
 │   └── delivery_history.csv  normalised history                      (READ-ONLY)
@@ -120,7 +122,7 @@ re-running it resets demo stock to the seed values.
 
 | Env var | Required | Notes |
 |---|---|---|
-| `DATABASE_URL` | yes | Neon **pooled** URL, `sslmode=require` |
+| `DATABASE_URL` | yes | Local: the compose URL from `.env.example`. Online: Neon **pooled** URL, `sslmode=require`. |
 | `PORT` | no | Local only, default 3000 |
 | `RATE_LIMIT_PER_MIN` | no | Default 60 |
 | `VERCEL_GIT_COMMIT_SHA` | auto | Shown in `/health` and the UI footer |
@@ -129,6 +131,7 @@ re-running it resets demo stock to the seed values.
 
 ## 5. Deployment
 
+0. Local development needs no Neon; see `README.md` (`## Setup`) for the local Docker workflow.
 1. Neon: create project `warehouse-allocator` in the Singapore region (closest to East Java) and copy the pooled URL.
 2. `npm run db:migrate && npm run db:seed` against Neon, run locally once.
 3. Vercel: import the GitHub repo, framework preset "Other", set `DATABASE_URL`, deploy from `main`.
