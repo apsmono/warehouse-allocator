@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import { createApp } from "./api/app.js";
 import { loadConfig } from "./config.js";
 import { createCatalogRepo } from "./db/catalog.repo.js";
@@ -6,6 +7,9 @@ import { closePool, getPool } from "./db/pool.js";
 
 const config = loadConfig();
 const pool = getPool(config.databaseUrl);
+pool.on("error", () => {
+  // Handled per-request by repository queries; prevent unhandled error event crash on idle client disconnect.
+});
 
 const app = createApp({
   catalogRepo: createCatalogRepo(pool),
@@ -13,6 +17,7 @@ const app = createApp({
   version: config.version,
   commit: config.commit,
   rateLimitPerMin: config.rateLimitPerMin,
+  publicDir: resolve(import.meta.dirname, "../public"),
 });
 
 const server = app.listen(config.port, () => {

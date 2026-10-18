@@ -13,6 +13,7 @@ export type AppDeps = {
   version?: string;
   commit?: string;
   rateLimitPerMin?: number;
+  publicDir?: string;
 };
 
 export function createApp(deps: AppDeps): Express {
@@ -21,6 +22,10 @@ export function createApp(deps: AppDeps): Express {
   app.set("trust proxy", 1);
   app.use(helmet());
   app.use(express.json({ limit: "10kb" }));
+
+  if (deps.publicDir) {
+    app.use(express.static(deps.publicDir));
+  }
 
   const version = deps.version ?? "0.1.0";
   const commit = deps.commit ?? "local";
