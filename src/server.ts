@@ -7,9 +7,6 @@ import { closePool, getPool } from "./db/pool.js";
 
 const config = loadConfig();
 const pool = getPool(config.databaseUrl);
-pool.on("error", () => {
-  // Handled per-request by repository queries; prevent unhandled error event crash on idle client disconnect.
-});
 
 const app = createApp({
   catalogRepo: createCatalogRepo(pool),

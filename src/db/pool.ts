@@ -12,6 +12,10 @@ export function getPool(connectionString: string): pg.Pool {
       idleTimeoutMillis: 30_000,
       connectionTimeoutMillis: 5_000,
     });
+    poolInstance.on("error", (err) => {
+      const reason = (err as { code?: string }).code ?? err.name;
+      console.error(`Idle database client error (${reason}).`);
+    });
   }
   return poolInstance;
 }
