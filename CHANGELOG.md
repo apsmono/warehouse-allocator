@@ -5,6 +5,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-18
+
 ### Added
 - Vanilla HTML/CSS/JS web UI (`public/index.html`, `public/styles.css`, `public/app.js`) served locally via optional `publicDir` in `createApp`: dynamic 1–20 line order builder, split-shipment toggle, three golden example buttons (`G03`, `G09`, `G05`), accessible `aria-live` decision view (status badge, shipments, shortfalls, reasons, exclusions, alternatives, persisted decision link, raw JSON), warehouse stock matrix, and `/api/v1/health` footer.
 - Static UI and CSP hygiene test suite (`test/api/static.test.ts`).
