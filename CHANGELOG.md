@@ -5,6 +5,17 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
 
 ## [Unreleased]
 
+### Added
+- Vanilla HTML/CSS/JS web UI (`public/index.html`, `public/styles.css`, `public/app.js`) served locally via optional `publicDir` in `createApp`: dynamic 1–20 line order builder, split-shipment toggle, three golden example buttons (`G03`, `G09`, `G05`), accessible `aria-live` decision view (status badge, shipments, shortfalls, reasons, exclusions, alternatives, persisted decision link, raw JSON), warehouse stock matrix, and `/api/v1/health` footer.
+- Static UI and CSP hygiene test suite (`test/api/static.test.ts`).
+- Local UI walkthrough in `README.md`.
+
+### Changed
+- Upgraded GitHub Actions (`actions/checkout@v7`, `actions/setup-node@v7`) to the Node 24 runtime and pinned `ubuntu-24.04` in `.github/workflows/ci.yml`.
+
+### Fixed
+- Resolved `.env` and `.env.example` paths relative to the script directory (`import.meta.dirname`) in `scripts/setup.mjs`.
+
 ## [0.2.0] - 2026-10-18
 
 ### Added
