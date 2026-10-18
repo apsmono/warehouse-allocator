@@ -63,6 +63,19 @@ function isBodyParserError(err: unknown): err is { type?: string } {
   return typeof err === "object" && err !== null && "type" in err;
 }
 
+export function extractErrorCode(err: unknown): string {
+  if (
+    typeof err === "object" &&
+    err !== null &&
+    "code" in err &&
+    typeof err.code === "string" &&
+    err.code.length > 0
+  ) {
+    return err.code;
+  }
+  return err instanceof Error ? err.name : "UnknownError";
+}
+
 export function notFoundHandler(_req: Request, _res: Response, next: NextFunction): void {
   next(new NotFoundError("Route not found"));
 }
@@ -136,6 +149,8 @@ export function errorHandler(
     }
   }
 
+  const reason = extractErrorCode(err);
+  console.error(`Unhandled internal error (${reason}).`);
   res.status(500).json({
     error: {
       code: "INTERNAL",

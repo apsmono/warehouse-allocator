@@ -5,10 +5,7 @@ import request from "supertest";
 import { describe, expect, it, vi } from "vitest";
 import { createApp } from "../../src/api/app.js";
 import type { CatalogRepository } from "../../src/db/catalog.repo.js";
-import type {
-  DecisionsRepository,
-  StoredDecisionRecord,
-} from "../../src/db/decisions.repo.js";
+import type { DecisionsRepository, StoredDecisionRecord } from "../../src/db/decisions.repo.js";
 import { allocate } from "../../src/engine/index.js";
 import type { Options, OrderLine } from "../../src/engine/types.js";
 import { loadSeedSnapshot } from "../helpers/seed-snapshot.js";
@@ -290,7 +287,9 @@ describe("Persistence & catalogue failure resilience and rate limiting", () => {
     try {
       const { app, snapshot } = createInMemoryDeps({
         insertImpl: async () => {
-          throw new Error("Neon connection terminated unexpectedly");
+          throw Object.assign(new Error("Neon connection terminated unexpectedly"), {
+            code: "42P01",
+          });
         },
       });
 
@@ -305,33 +304,42 @@ describe("Persistence & catalogue failure resilience and rate limiting", () => {
         decision: expectedDecision,
       });
       expect(consoleErrorSpy).toHaveBeenCalledOnce();
+      expect(consoleErrorSpy.mock.calls[0]?.[0]).toContain("42P01");
     } finally {
       consoleErrorSpy.mockRestore();
     }
   });
 
   it("returns 500 INTERNAL when loadSnapshot throws, leaking neither message nor stack", async () => {
-    const secretMessage = "SELECT * FROM inventory failed: password authentication failed";
-    const { app } = createInMemoryDeps({
-      loadSnapshotImpl: async () => {
-        throw new Error(secretMessage);
-      },
-    });
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const secretMessage = "SELECT * FROM inventory failed: password authentication failed";
+      const { app } = createInMemoryDeps({
+        loadSnapshotImpl: async () => {
+          throw Object.assign(new Error(secretMessage), { code: "28P01" });
+        },
+      });
 
-    const res = await request(app)
-      .post("/api/v1/allocations")
-      .send({ lines: [{ productId: "P001", quantity: 10 }] });
+      const res = await request(app)
+        .post("/api/v1/allocations")
+        .send({ lines: [{ productId: "P001", quantity: 10 }] });
 
-    expect(res.status).toBe(500);
-    expect(res.body).toEqual({
-      error: {
-        code: "INTERNAL",
-        message: "Internal error",
-      },
-    });
-    const rawText = JSON.stringify(res.body);
-    expect(rawText).not.toContain(secretMessage);
-    expect(rawText).not.toContain("stack");
+      expect(res.status).toBe(500);
+      expect(res.body).toEqual({
+        error: {
+          code: "INTERNAL",
+          message: "Internal error",
+        },
+      });
+      const rawText = JSON.stringify(res.body);
+      expect(rawText).not.toContain(secretMessage);
+      expect(rawText).not.toContain("stack");
+      expect(consoleErrorSpy).toHaveBeenCalledOnce();
+      expect(consoleErrorSpy.mock.calls[0]?.[0]).toContain("28P01");
+      expect(consoleErrorSpy.mock.calls[0]?.[0]).not.toContain(secretMessage);
+    } finally {
+      consoleErrorSpy.mockRestore();
+    }
   });
 
   it("with rateLimitPerMin: 2, 3rd POST returns 429 RATE_LIMITED while GET /catalog is unaffected", async () => {

@@ -144,14 +144,7 @@ export async function runSeed(pool: pg.Pool): Promise<SeedCounts> {
              depart_time = EXCLUDED.depart_time,
              duration_min = EXCLUDED.duration_min,
              note = EXCLUDED.note`,
-          [
-            row.id,
-            row.warehouseId,
-            row.dayOfWeek,
-            row.departTime,
-            row.durationMin,
-            row.note,
-          ],
+          [row.id, row.warehouseId, row.dayOfWeek, row.departTime, row.durationMin, row.note],
         );
       }
 

@@ -81,9 +81,7 @@ describe.skipIf(!process.env.DATABASE_URL)("Postgres DB integration", () => {
       decision,
     });
 
-    expect(inserted.id).toMatch(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
-    );
+    expect(inserted.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
     expect(new Date(inserted.createdAt).toISOString()).toBe(inserted.createdAt);
 
     const fetched = await decisionsRepo.getById(inserted.id);

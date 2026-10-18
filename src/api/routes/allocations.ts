@@ -8,6 +8,7 @@ import {
   NotFoundError,
   RateLimitedError,
   ValidationError,
+  extractErrorCode,
 } from "../errors.js";
 import { allocationRequestSchema, isValidUuid } from "../schemas.js";
 
@@ -73,7 +74,7 @@ export function createAllocationsRouter(deps: AllocationsRouterDeps): Router {
         decision,
       });
     } catch (err) {
-      const reason = err instanceof Error ? err.name : "UnknownError";
+      const reason = extractErrorCode(err);
       console.error(`Decision persistence failed (${reason}); returning unpersisted decision.`);
       res.status(200).json({
         id: null,
