@@ -8,13 +8,17 @@
     "node": ">=22 <23"
   },
   "scripts": {
+    "setup": "node scripts/setup.mjs",
     "dev": "tsx watch --env-file=.env src/server.ts",
+    "db:up": "docker compose up -d --wait",
+    "db:down": "docker compose down",
     "db:migrate": "tsx --env-file=.env db/migrate.ts",
     "db:seed": "tsx --env-file=.env db/seed.ts",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint",
     "format": "prettier --write .",
     "test": "vitest run",
+    "test:db": "node --env-file=.env node_modules/vitest/vitest.mjs run test/db",
     "test:cov": "vitest run --coverage"
   },
   "devDependencies": {

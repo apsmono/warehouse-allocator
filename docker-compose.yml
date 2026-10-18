@@ -1,0 +1,20 @@
+name: warehouse-allocator
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: wa
+      POSTGRES_PASSWORD: wa
+      POSTGRES_DB: warehouse_allocator
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wa -d warehouse_allocator"]
+      interval: 2s
+      retries: 15
+
+volumes:
+  pgdata:
