@@ -1,7 +1,5 @@
-import { readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 import { z } from "zod";
+import pkg from "../package.json" with { type: "json" };
 
 export type AppConfig = Readonly<{
   databaseUrl: string;
@@ -21,9 +19,7 @@ const envSchema = z.object({
 let cachedConfig: AppConfig | null = null;
 
 function readPackageVersion(): string {
-  const currentDir = dirname(fileURLToPath(import.meta.url));
-  const pkgPath = resolve(currentDir, "../package.json");
-  const raw = JSON.parse(readFileSync(pkgPath, "utf8")) as { version?: unknown };
+  const raw = pkg as { version?: unknown };
   return typeof raw.version === "string" ? raw.version : "0.0.0";
 }
 

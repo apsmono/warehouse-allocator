@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import { createApp } from "./api/app.js";
 import { loadConfig } from "./config.js";
 import { createCatalogRepo } from "./db/catalog.repo.js";
@@ -13,6 +14,7 @@ const app = createApp({
   version: config.version,
   commit: config.commit,
   rateLimitPerMin: config.rateLimitPerMin,
+  publicDir: resolve(import.meta.dirname, "../public"),
 });
 
 const server = app.listen(config.port, () => {

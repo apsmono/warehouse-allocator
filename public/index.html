@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Warehouse Allocator</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container">
+        <h1>Warehouse Allocator</h1>
+        <p class="subtitle">
+          Medical-supply order allocation across regional warehouses with cold-chain compliance and
+          cost explanation.
+        </p>
+      </div>
+    </header>
+
+    <main class="container main-content">
+      <section class="card" aria-labelledby="order-heading">
+        <div class="section-header">
+          <h2 id="order-heading">Build an Order</h2>
+          <div class="examples-group" role="group" aria-label="Example orders">
+            <span class="examples-label">Try an example:</span>
+            <button type="button" class="btn btn-secondary" id="example-g03">
+              Cold-chain trap (G03)
+            </button>
+            <button type="button" class="btn btn-secondary" id="example-g09">
+              Split beats far (G09)
+            </button>
+            <button type="button" class="btn btn-secondary" id="example-g05">Partial (G05)</button>
+          </div>
+        </div>
+
+        <div id="catalog-error" class="alert alert-error" role="alert" hidden></div>
+
+        <form id="order-form" novalidate>
+          <fieldset class="lines-fieldset">
+            <legend class="sr-only">Order lines</legend>
+            <div id="order-lines" class="order-lines"></div>
+            <div class="line-actions">
+              <button type="button" id="add-line-btn" class="btn btn-outline">+ Add line</button>
+              <span id="line-count-hint" class="hint-text">1 of 20 lines</span>
+            </div>
+          </fieldset>
+
+          <div class="form-footer">
+            <div class="checkbox-row">
+              <input type="checkbox" id="allow-split-input" name="allowSplit" checked />
+              <label for="allow-split-input">Allow split shipments across warehouses</label>
+            </div>
+            <button type="submit" id="submit-btn" class="btn btn-primary">Allocate order</button>
+          </div>
+        </form>
+      </section>
+
+      <section
+        id="result-region"
+        class="card result-region"
+        aria-labelledby="result-heading"
+        aria-live="polite"
+      >
+        <h2 id="result-heading">Allocation Decision</h2>
+        <div id="result-content">
+          <p class="muted-text">
+            Submit an order or choose one of the example scenarios above to view the allocation
+            decision and explanation.
+          </p>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="stock-heading">
+        <h2 id="stock-heading">Warehouse Stock Reference</h2>
+        <p class="section-note">
+          Cold-chain products (marked with <strong>[Cold]</strong>) require a warehouse with both
+          refrigerated storage and refrigerated fleet vehicles.
+        </p>
+        <div
+          id="stock-table-wrapper"
+          class="table-scroll"
+          tabindex="0"
+          role="region"
+          aria-labelledby="stock-heading"
+        >
+          <p id="stock-loading" class="muted-text">Loading catalogue...</p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <p id="health-footer" class="footer-meta">Checking service health...</p>
+      </div>
+    </footer>
+  </body>
+</html>

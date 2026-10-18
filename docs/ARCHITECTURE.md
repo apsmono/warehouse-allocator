@@ -8,7 +8,7 @@
 | Language | TypeScript, `strict: true`, ESM | latest 5.x |
 | HTTP | **Express 5** | Async errors propagate natively, so no wrapper helpers |
 | Validation | **Zod** | Schemas in `src/api/schemas.ts` are the single source of request types |
-| Database | PostgreSQL 16: Docker locally, Neon (free tier) online | Pooled connection string |
+| Database | PostgreSQL 18: Docker locally, Neon (free tier) online | Local: compose URL. Online: Neon pooled URL |
 | DB access | **`pg` (node-postgres) with plain SQL**, no ORM | Migrations are numbered `.sql` files |
 | UI | **Static HTML + vanilla JS + one CSS file**, served from `public/` | No framework, no bundler |
 | Tests | **Vitest** + **supertest** | |
@@ -132,10 +132,9 @@ re-running it resets demo stock to the seed values.
 ## 5. Deployment
 
 0. Local development needs no Neon; see `README.md` (`## Setup`) for the local Docker workflow.
-1. Neon: create project `warehouse-allocator` in the Singapore region (closest to East Java) and copy the pooled URL.
-2. `npm run db:migrate && npm run db:seed` against Neon, run locally once.
-3. Vercel: import the GitHub repo, framework preset "Other", set `DATABASE_URL`, deploy from `main`.
-4. `.github/workflows/keepalive.yml`: weekly cron (Mon 02:17 UTC) that `curl --fail`s `/api/v1/health`.
-   It surfaces breakage and keeps Neon's compute from staying cold.
+1. CI leak check: set the `LEAK_MARKERS` repository secret (`gh secret set LEAK_MARKERS -R apsmono/warehouse-allocator < .private/leak-markers.txt`).
+2. Neon: create a PostgreSQL 18 database in the Singapore region (`ap-southeast-1`), copy the **pooled** URL, and run `npm run db:migrate && npm run db:seed` against Neon via a shell `DATABASE_URL` override (keeping local `.env` pointed at `postgresql://wa:wa@localhost:5433/warehouse_allocator`).
+3. Vercel: import `apsmono/warehouse-allocator` with framework preset **Other** (build/output left at defaults so `vercel.json` governs them and pins `sin1`), set `DATABASE_URL` to the Neon pooled URL for **Production and Preview** with `sslmode=verify-full` and `channel_binding=require`, and turn **Vercel Authentication off** under Deployment Protection.
+4. `.github/workflows/keepalive.yml`: weekly cron (`17 2 * * 1`, Mon 02:17 UTC) plus `workflow_dispatch` that curls `<PROD_URL>/api/v1/health` with retries (`--retry 3 --retry-delay 20 --retry-all-errors`) to surface breakage and keep Neon warm.
 5. Fallback if Vercel misbehaves with Express: Render free web service. **It sleeps after 15 min idle
    (~1 min cold start), which must then be stated in the submission email.**
