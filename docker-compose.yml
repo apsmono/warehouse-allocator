@@ -2,7 +2,7 @@ name: warehouse-allocator
 
 services:
   db:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     environment:
       POSTGRES_USER: wa
       POSTGRES_PASSWORD: wa
@@ -10,11 +10,11 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata18:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U wa -d warehouse_allocator"]
       interval: 2s
       retries: 15
 
 volumes:
-  pgdata:
+  pgdata18:
