@@ -2,8 +2,11 @@ import { spawnSync } from "node:child_process";
 import { copyFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 
+const rootDir = resolve(import.meta.dirname, "..");
+
 function run(cmd, args) {
   const result = spawnSync(cmd, args, {
+    cwd: rootDir,
     stdio: "inherit",
     shell: process.platform === "win32",
   });
@@ -40,8 +43,8 @@ if (run("docker", ["compose", "version"]) !== 0) {
 console.log("→ Installing dependencies (npm ci)...");
 runOrExit("npm", ["ci"]);
 
-const envPath = resolve(process.cwd(), ".env");
-const envExamplePath = resolve(process.cwd(), ".env.example");
+const envPath = resolve(rootDir, ".env");
+const envExamplePath = resolve(rootDir, ".env.example");
 if (existsSync(envPath)) {
   console.log("→ Keeping existing .env (not overwritten).");
 } else {
