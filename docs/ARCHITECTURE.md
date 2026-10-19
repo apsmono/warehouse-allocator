@@ -122,7 +122,7 @@ re-running it resets demo stock to the seed values.
 
 | Env var | Required | Notes |
 |---|---|---|
-| `DATABASE_URL` | yes | Local: the compose URL from `.env.example`. Online: Neon **pooled** URL, `sslmode=require`. |
+| `DATABASE_URL` | yes | Local: the compose URL from `.env.example`. Online: Neon **pooled** URL, `sslmode=verify-full`. |
 | `PORT` | no | Local only, default 3000 |
 | `RATE_LIMIT_PER_MIN` | no | Default 60 |
 | `VERCEL_GIT_COMMIT_SHA` | auto | Shown in `/health` and the UI footer |

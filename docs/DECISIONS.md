@@ -217,7 +217,7 @@ online preview.
 | Mode | Database | Who | `DATABASE_URL` |
 |---|---|---|---|
 | **Local** (default) | Postgres 18 in Docker, via the committed `docker-compose.yml` | Anyone who clones the repo | `postgresql://wa:wa@localhost:5433/warehouse_allocator` |
-| **Online preview** | Neon (pooled, `sslmode=require`) | The deployed app (M3) | Set in `.env` or Vercel env |
+| **Online preview** | Neon (pooled, `sslmode=verify-full`) | The deployed app (M3) | Set in `.env` or Vercel env |
 
 **Consequences.** Docker is a local development prerequisite; `pg` is driven by the connection URL
 alone (no mode flag or custom SSL branching in `pool.ts`); the integration test never targets Neon
