@@ -5,6 +5,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
 
 ## [Unreleased]
 
+### Added
+- Pure display formatting module (`public/format.js`) with JSDoc type checking and unit tests (`test/ui/format.test.ts`), covering product labels (`P00X · Name`), cold-chain exclusion mapping, alternative `whyNot` splitting, plain-arithmetic cost breakdowns across all golden cases, shippable stock calculation, duplicate line detection, stock cell descriptors, warehouse decision roles, and `curl` command generation.
+- Decision panel detail toggle (`Simple | Full | Debug`, persisted in `localStorage`), status badge hint (`all units allocated` / shortfall count), plain-arithmetic cost breakdown, compact cold-chain exclusions table, de-duplicated alternative `whyNot` column, and focus/scroll management on `#result-heading`.
+- Order builder enhancements: single customer location note, visible example captions, per-line `❄ Cold chain` badge and shippable stock hint, duplicate product merge banner, split-shipment policy help (`aria-describedby`), and live running summary.
+- Transposed `Products × Warehouses` stock reference table (with persisted orientation toggle), readable zero (`—`) and cold-ineligible (`can't ship cold`) cells, and live decision highlights on ordered product rows, chosen warehouse columns, and allocated cells (`qty → ships X`).
+- Four native `<dialog>` modals (`showModal()` with `Esc`, Close button, backdrop click, body scroll lock, and opener focus restoration): **How it decides** (`#rules-modal`), **Warehouse detail** (`#warehouse-modal`, opened from any warehouse ID button), **Saved decision JSON** (`#saved-decision-modal`), and **API call** (`#api-call-modal` with **Copy as curl**).
+- Responsive 1-, 2-, and 3-column CSS Grid layout (`< 768 px` phone card layout, `768–1099 px` single column, `1100–1439 px` two columns with sticky order card, `≥ 1440 px` three columns separating Order, Decision, and Why), plus GitHub repo and API docs links in the footer.
+
 ## [0.3.0] - 2026-10-18
 
 ### Added
