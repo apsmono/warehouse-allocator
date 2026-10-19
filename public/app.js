@@ -1341,8 +1341,9 @@ async function loadCatalog() {
 }
 
 async function loadHealth() {
-  const footer = document.getElementById("health-footer");
-  if (!footer) {
+  const statusSpan =
+    document.getElementById("health-status-text") ?? document.getElementById("health-footer");
+  if (!statusSpan) {
     return;
   }
 
@@ -1353,17 +1354,17 @@ async function loadHealth() {
     if (body && body.version && body.engineVersion && body.commit) {
       const baseText = `App v${body.version} · Engine v${body.engineVersion} · Commit ${body.commit}`;
       if (res.status === 503 || body.db !== "ok") {
-        footer.textContent = `${baseText} · database unreachable`;
+        statusSpan.textContent = `${baseText} · database unreachable`;
       } else {
-        footer.textContent = baseText;
+        statusSpan.textContent = baseText;
       }
       return;
     }
 
-    footer.textContent =
+    statusSpan.textContent =
       res.status === 503 ? "Service degraded · database unreachable" : "Health status unavailable";
   } catch {
-    footer.textContent = "Could not reach the server · database unreachable";
+    statusSpan.textContent = "Could not reach the server · database unreachable";
   }
 }
 
