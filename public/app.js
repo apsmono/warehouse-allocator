@@ -1,7 +1,10 @@
 import {
   buildAllocationCurl,
   computeCostBreakdown,
+  computeShippableStock,
+  findDuplicateMerges,
   formatExclusions,
+  formatOrderSummary,
   formatProductDisplay,
   formatShortDecisionId,
   formatStatusHint,
@@ -102,14 +105,56 @@ function focusAndScrollResultHeading() {
 }
 
 function formatProductLabel(product) {
-  return product.requiresColdChain
-    ? `${product.id} — ${product.name} [Cold]`
-    : `${product.id} — ${product.name}`;
+  return formatProductDisplay(product, product.id);
 }
 
 function getProductDisplay(productId) {
   const product = state.productsById.get(productId);
   return formatProductDisplay(product, productId);
+}
+
+function getDraftOrderLines() {
+  return state.lineRows.map((row) => {
+    const rawQty = row.qtyInput.value.trim();
+    const parsed = rawQty === "" ? 0 : Number(rawQty);
+    return {
+      productId: row.select.value,
+      quantity: Number.isNaN(parsed) ? 0 : parsed,
+    };
+  });
+}
+
+function updateRowProductMeta(row) {
+  const productId = row.select.value;
+  const stockInfo = computeShippableStock(productId, state.products, state.warehouses);
+  row.coldBadge.hidden = !stockInfo.requiresColdChain;
+  row.stockHint.textContent = stockInfo.text;
+}
+
+function updateOrderBuilderDerivedState() {
+  const draftLines = getDraftOrderLines();
+
+  const dupContainer = document.getElementById("duplicate-merge-hints");
+  if (dupContainer) {
+    const merges = findDuplicateMerges(draftLines);
+    if (merges.length > 0) {
+      const frag = document.createDocumentFragment();
+      for (const m of merges) {
+        frag.appendChild(el("p", "duplicate-hint-item", `ⓘ ${m.text}`));
+      }
+      dupContainer.replaceChildren(frag);
+      dupContainer.hidden = false;
+    } else {
+      dupContainer.replaceChildren();
+      dupContainer.hidden = true;
+    }
+  }
+
+  const summaryEl = document.getElementById("order-running-summary");
+  if (summaryEl) {
+    const summary = formatOrderSummary(draftLines, state.products);
+    summaryEl.textContent = summary.text;
+  }
 }
 
 function updateLineControls() {
@@ -129,6 +174,7 @@ function updateLineControls() {
     const row = state.lineRows[i];
     const productIdAttr = `line-product-${lineNum}`;
     const qtyIdAttr = `line-qty-${lineNum}`;
+    const stockHintIdAttr = `line-stock-hint-${lineNum}`;
 
     row.productLabel.setAttribute("for", productIdAttr);
     row.productLabel.textContent = `Product, line ${lineNum}`;
@@ -141,10 +187,17 @@ function updateLineControls() {
     row.qtyInput.id = qtyIdAttr;
     row.qtyInput.name = `quantity-${lineNum}`;
     row.qtyInput.setAttribute("aria-label", `Quantity, line ${lineNum}`);
+    row.qtyInput.setAttribute("aria-describedby", stockHintIdAttr);
+
+    row.stockHint.id = stockHintIdAttr;
 
     row.removeBtn.setAttribute("aria-label", `Remove line ${lineNum}`);
     row.removeBtn.disabled = count <= 1 || state.submitting;
+
+    updateRowProductMeta(row);
   }
+
+  updateOrderBuilderDerivedState();
 }
 
 function addOrderLine(initialProductId, initialQuantity) {
@@ -159,10 +212,14 @@ function addOrderLine(initialProductId, initialQuantity) {
 
   const rowEl = el("div", "order-line-row");
 
-  const productGroup = el("div", "field-group");
+  const productGroup = el("div", "field-group product-field-group");
+  const productHeader = el("div", "field-label-row");
   const productLabel = el("label");
-  const select = document.createElement("select");
+  const coldBadge = el("span", "cold-chain-badge", "❄ Cold chain");
+  coldBadge.hidden = true;
+  productHeader.append(productLabel, coldBadge);
 
+  const select = document.createElement("select");
   for (const product of state.products) {
     const option = document.createElement("option");
     option.value = product.id;
@@ -176,9 +233,10 @@ function addOrderLine(initialProductId, initialQuantity) {
     select.value = state.products[0].id;
   }
 
-  productGroup.append(productLabel, select);
+  const stockHint = el("span", "line-stock-hint");
+  productGroup.append(productHeader, select, stockHint);
 
-  const qtyGroup = el("div", "field-group");
+  const qtyGroup = el("div", "field-group qty-field-group");
   const qtyLabel = el("label");
   const qtyInput = document.createElement("input");
   qtyInput.type = "number";
@@ -194,11 +252,22 @@ function addOrderLine(initialProductId, initialQuantity) {
   const rowRecord = {
     rowEl,
     productLabel,
+    coldBadge,
     select,
+    stockHint,
     qtyLabel,
     qtyInput,
     removeBtn,
   };
+
+  select.addEventListener("change", () => {
+    updateRowProductMeta(rowRecord);
+    updateOrderBuilderDerivedState();
+  });
+
+  qtyInput.addEventListener("input", () => {
+    updateOrderBuilderDerivedState();
+  });
 
   removeBtn.addEventListener("click", () => {
     if (state.lineRows.length <= 1) {
