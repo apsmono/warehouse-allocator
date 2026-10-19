@@ -9,6 +9,7 @@ import {
   formatProductDisplay,
   formatShortDecisionId,
   formatStatusHint,
+  getWarehouseDecisionRole,
   splitWhyNot,
 } from "./format.js";
 
@@ -28,6 +29,7 @@ const state = {
   products: [],
   productsById: new Map(),
   warehouses: [],
+  warehousesById: new Map(),
   lineRows: [],
   submitting: false,
   detailLevel: "full",
@@ -35,6 +37,7 @@ const state = {
   lastRequest: null,
   lastResponse: null,
   lastHttpStatus: null,
+  modalOpeners: new WeakMap(),
 };
 
 function el(tag, className, text) {
@@ -63,6 +66,267 @@ function writeStoredPreference(key, value) {
   } catch {
     // Ignore when localStorage is blocked or unavailable
   }
+}
+
+function syncBodyModalLock() {
+  const anyOpen = Boolean(document.querySelector("dialog[open]"));
+  document.body.classList.toggle("modal-open", anyOpen);
+}
+
+function openModalDialog(dialogId, openerEl) {
+  const dialog = document.getElementById(dialogId);
+  if (!dialog || typeof dialog.showModal !== "function") {
+    return;
+  }
+  const trigger =
+    openerEl instanceof HTMLElement
+      ? openerEl
+      : document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+  if (trigger) {
+    state.modalOpeners.set(dialog, trigger);
+  }
+  if (!dialog.open) {
+    dialog.showModal();
+  }
+  syncBodyModalLock();
+}
+
+function setupModalDialogs() {
+  const dialogs = document.querySelectorAll("dialog.app-modal");
+  for (const dialog of dialogs) {
+    dialog.addEventListener("close", () => {
+      syncBodyModalLock();
+      const opener = state.modalOpeners.get(dialog);
+      if (opener && opener.isConnected && typeof opener.focus === "function") {
+        opener.focus();
+      }
+    });
+
+    const closeButtons = dialog.querySelectorAll("[data-close-modal]");
+    for (const btn of closeButtons) {
+      btn.addEventListener("click", () => {
+        dialog.close();
+      });
+    }
+
+    // Light-dismiss backdrop click handler (covers browsers without <dialog closedby="any">
+    // as well as direct clicks on the <dialog> backdrop outside .modal-surface)
+    dialog.addEventListener("click", (event) => {
+      if (event.target !== dialog) {
+        return;
+      }
+      const surface = dialog.querySelector(".modal-surface");
+      if (surface && event.clientX !== 0 && event.clientY !== 0) {
+        const rect = surface.getBoundingClientRect();
+        const isInsideSurface =
+          rect.top <= event.clientY &&
+          event.clientY <= rect.top + rect.height &&
+          rect.left <= event.clientX &&
+          event.clientX <= rect.left + rect.width;
+        if (isInsideSurface) {
+          return;
+        }
+      }
+      dialog.close();
+    });
+  }
+}
+
+function createWarehouseButton(warehouseId, extraClass = "") {
+  const cls = extraClass ? `wh-link-btn ${extraClass}` : "wh-link-btn";
+  const btn = el("button", cls, warehouseId);
+  btn.type = "button";
+  btn.setAttribute("data-warehouse-modal", warehouseId);
+  btn.setAttribute("aria-label", `Inspect warehouse ${warehouseId}`);
+  btn.addEventListener("click", () => {
+    openWarehouseModal(warehouseId, btn);
+  });
+  return btn;
+}
+
+function openWarehouseModal(warehouseId, openerEl) {
+  const warehouse = state.warehousesById.get(warehouseId);
+  const titleEl = document.getElementById("warehouse-modal-title");
+  const bodyEl = document.getElementById("warehouse-modal-body");
+  if (!warehouse || !titleEl || !bodyEl) {
+    return;
+  }
+
+  titleEl.textContent = `${warehouse.id} · ${warehouse.city} · ${warehouse.distanceKm} km`;
+
+  const frag = document.createDocumentFragment();
+
+  const capsRow = el("div", "wh-modal-caps");
+  const storageSpan = el(
+    "span",
+    warehouse.hasColdStorage ? "cap-pill cap-yes" : "cap-pill cap-no",
+    `Cold storage ${warehouse.hasColdStorage ? "✓" : "✗"}`,
+  );
+  const fleetSpan = el(
+    "span",
+    warehouse.hasColdFleet ? "cap-pill cap-yes" : "cap-pill cap-no",
+    `Refrigerated vans ${warehouse.hasColdFleet ? "✓" : "✗"}`,
+  );
+  capsRow.append(storageSpan, fleetSpan);
+  frag.appendChild(capsRow);
+
+  const roleBox = el("div", "wh-modal-role-box");
+  roleBox.appendChild(el("h3", "modal-sub-heading", "In this decision"));
+  const roleInfo = getWarehouseDecisionRole(
+    warehouse.id,
+    state.lastResponse?.decision ?? null,
+    state.warehouses,
+  );
+  const roleText = el("p", `wh-role-text wh-role-${roleInfo.role}`, roleInfo.summary);
+  roleBox.appendChild(roleText);
+  frag.appendChild(roleBox);
+
+  frag.appendChild(el("h3", "modal-sub-heading", "Stock"));
+  const { allocatedByKey } = getDecisionHighlightContext();
+  const stockTable = el("table", "modal-stock-table");
+  const thead = document.createElement("thead");
+  const hRow = document.createElement("tr");
+  const pTh = el("th", undefined, "Product");
+  pTh.scope = "col";
+  const qTh = el("th", "num-cell", "Quantity");
+  qTh.scope = "col";
+  hRow.append(pTh, qTh);
+  thead.appendChild(hRow);
+
+  const tbody = document.createElement("tbody");
+  for (const product of state.products) {
+    const tr = document.createElement("tr");
+    const prodTh = el("th", undefined);
+    prodTh.scope = "row";
+    prodTh.appendChild(el("span", undefined, formatProductDisplay(product, product.id)));
+    if (product.requiresColdChain) {
+      prodTh.appendChild(document.createTextNode(" "));
+      prodTh.appendChild(el("span", "cold-chain-badge", "❄ Cold"));
+    }
+
+    const alloc = allocatedByKey.get(`${warehouse.id}:${product.id}`) ?? 0;
+    const cellDesc = describeStockCell(warehouse, product, alloc);
+    const qtyTd = el("td", "num-cell");
+    if (cellDesc.state === "zero") {
+      qtyTd.appendChild(el("span", "stock-zero-dash", "—"));
+    } else if (cellDesc.state === "ineligible-cold") {
+      const strike = el("s", "stock-qty-ineligible", cellDesc.primaryText);
+      const note = el("span", "stock-note-ineligible", ` ${cellDesc.secondaryText}`);
+      qtyTd.append(strike, note);
+    } else if (cellDesc.state === "allocated") {
+      qtyTd.append(
+        el("span", undefined, `${cellDesc.quantity} → `),
+        el("strong", "stock-ships-badge", cellDesc.secondaryText),
+      );
+    } else {
+      qtyTd.textContent = cellDesc.primaryText;
+    }
+
+    tr.append(prodTh, qtyTd);
+    tbody.appendChild(tr);
+  }
+  stockTable.append(thead, tbody);
+  frag.appendChild(stockTable);
+
+  frag.appendChild(el("p", "modal-note", "Distances are from the customer location."));
+
+  bodyEl.replaceChildren(frag);
+  openModalDialog("warehouse-modal", openerEl);
+}
+
+async function openSavedDecisionModal(decisionId, openerEl) {
+  const titleEl = document.getElementById("saved-decision-modal-title");
+  const bodyEl = document.getElementById("saved-decision-modal-body");
+  if (!decisionId || !titleEl || !bodyEl) {
+    return;
+  }
+
+  const shortId = formatShortDecisionId(decisionId);
+  titleEl.textContent = `Saved decision ${shortId}`;
+  const jsonUrl = `/api/v1/allocations/${encodeURIComponent(decisionId)}`;
+
+  const loadingP = el("p", "muted-text", "Loading stored decision…");
+  bodyEl.replaceChildren(loadingP);
+  openModalDialog("saved-decision-modal", openerEl);
+
+  try {
+    const res = await fetch(jsonUrl);
+    const data = await res.json().catch(() => null);
+    const frag = document.createDocumentFragment();
+
+    if (res.ok && data) {
+      if (data.createdAt) {
+        frag.appendChild(el("p", "modal-meta-line", `Created ${data.createdAt}`));
+      }
+      frag.appendChild(el("pre", "raw-json-pre", JSON.stringify(data, null, 2)));
+    } else if (state.lastResponse) {
+      frag.appendChild(el("pre", "raw-json-pre", JSON.stringify(state.lastResponse, null, 2)));
+    } else {
+      frag.appendChild(el("p", "alert alert-error", "Could not load stored decision."));
+    }
+
+    const linkRow = el("p", "modal-link-row");
+    const plainLink = el("a", "open-json-link", "Open as JSON ↗");
+    plainLink.href = jsonUrl;
+    plainLink.target = "_blank";
+    plainLink.rel = "noopener";
+    linkRow.appendChild(plainLink);
+    frag.appendChild(linkRow);
+
+    bodyEl.replaceChildren(frag);
+  } catch {
+    const frag = document.createDocumentFragment();
+    frag.appendChild(el("p", "alert alert-error", "Could not reach the server."));
+    const linkRow = el("p", "modal-link-row");
+    const plainLink = el("a", "open-json-link", "Open as JSON ↗");
+    plainLink.href = jsonUrl;
+    linkRow.appendChild(plainLink);
+    frag.appendChild(linkRow);
+    bodyEl.replaceChildren(frag);
+  }
+}
+
+function openApiCallModal(openerEl) {
+  const bodyEl = document.getElementById("api-call-modal-body");
+  if (!bodyEl) {
+    return;
+  }
+
+  const reqPayload = state.lastRequest ?? { lines: [], options: { allowSplit: true } };
+  const resPayload = state.lastResponse ?? {};
+  const status = state.lastHttpStatus ?? 201;
+  const curlCmd = buildAllocationCurl(window.location.origin, reqPayload);
+
+  const frag = document.createDocumentFragment();
+  frag.appendChild(el("p", "modal-endpoint-line", "POST /api/v1/allocations"));
+
+  frag.appendChild(el("p", "sub-label", "Request"));
+  const reqPre = el("pre", "raw-json-pre", JSON.stringify(reqPayload, null, 2));
+  frag.appendChild(reqPre);
+
+  frag.appendChild(el("p", "sub-label", `Response (${status})`));
+  const resPre = el("pre", "raw-json-pre", JSON.stringify(resPayload, null, 2));
+  frag.appendChild(resPre);
+
+  const actionsRow = el("div", "debug-actions-row");
+  const copyBtn = el("button", "btn btn-primary btn-sm", "Copy as curl");
+  copyBtn.type = "button";
+  const copyFeedback = el("span", "copy-feedback", "");
+  copyFeedback.setAttribute("aria-live", "polite");
+
+  copyBtn.addEventListener("click", () => {
+    void copyTextToClipboard(curlCmd, reqPre).then((ok) => {
+      copyFeedback.textContent = ok ? "Copied" : "Select and copy above";
+    });
+  });
+
+  actionsRow.append(copyBtn, copyFeedback);
+  frag.appendChild(actionsRow);
+
+  bodyEl.replaceChildren(frag);
+  openModalDialog("api-call-modal", openerEl);
 }
 
 function applyDetailLevel(level, persist = true) {
@@ -423,7 +687,8 @@ function renderStockTable(products, warehouses) {
         th.setAttribute("data-chosen", "true");
       }
 
-      const idLine = el("div", "wh-header-id", warehouse.id);
+      const idLine = el("div", "wh-header-id");
+      idLine.appendChild(createWarehouseButton(warehouse.id, "wh-header-btn"));
       const metaLine = el(
         "div",
         "wh-header-meta",
@@ -502,8 +767,9 @@ function renderStockTable(products, warehouses) {
         tr.setAttribute("data-chosen", "true");
       }
 
-      const idTh = el("th", "sticky-col", warehouse.id);
+      const idTh = el("th", "sticky-col");
       idTh.scope = "row";
+      idTh.appendChild(createWarehouseButton(warehouse.id, "wh-header-btn"));
       tr.appendChild(idTh);
 
       tr.appendChild(el("td", undefined, warehouse.city));
@@ -588,9 +854,10 @@ function buildShipmentsTable(shipments) {
   const tbody = document.createElement("tbody");
   for (const shipment of shipments) {
     const tr = document.createElement("tr");
-    const whTh = el("th", undefined, shipment.warehouseId);
+    const whTh = el("th", undefined);
     whTh.scope = "row";
     whTh.setAttribute("data-label", "Warehouse");
+    whTh.appendChild(createWarehouseButton(shipment.warehouseId));
     tr.appendChild(whTh);
 
     const cityTd = el("td", undefined, shipment.city);
@@ -677,9 +944,10 @@ function buildExclusionsTable(excluded) {
   for (const row of rows) {
     const tr = document.createElement("tr");
 
-    const whTh = el("th", undefined, row.warehouseId);
+    const whTh = el("th", undefined);
     whTh.scope = "row";
     whTh.setAttribute("data-label", "Warehouse");
+    whTh.appendChild(createWarehouseButton(row.warehouseId));
     tr.appendChild(whTh);
 
     const holdsTd = el("td", undefined, `${row.holdsText} (${row.productId})`);
@@ -716,9 +984,16 @@ function buildAlternativesTable(alternatives, costUnit) {
   const tbody = document.createElement("tbody");
   for (const alt of alternatives) {
     const tr = document.createElement("tr");
-    const whTh = el("th", undefined, (alt.warehouses || []).join(" + "));
+    const whTh = el("th", undefined);
     whTh.scope = "row";
     whTh.setAttribute("data-label", "Warehouses");
+    const whIds = alt.warehouses || [];
+    for (let i = 0; i < whIds.length; i++) {
+      if (i > 0) {
+        whTh.appendChild(document.createTextNode(" + "));
+      }
+      whTh.appendChild(createWarehouseButton(whIds[i]));
+    }
     tr.appendChild(whTh);
 
     const unitsTd = el("td", "num-cell", String(alt.unitsFilled));
@@ -855,9 +1130,13 @@ function renderDecisionResponse(payload) {
     const codeEl = el("code", "decision-short-id", shortId);
     savedLine.appendChild(codeEl);
     savedLine.appendChild(document.createTextNode(" · "));
-    const viewLink = el("a", "view-json-link", "view JSON");
-    viewLink.href = `/api/v1/allocations/${encodeURIComponent(payload.id)}`;
-    savedLine.appendChild(viewLink);
+    const viewBtn = el("button", "link-btn view-json-btn", "view JSON");
+    viewBtn.type = "button";
+    viewBtn.id = "view-saved-json-btn";
+    viewBtn.addEventListener("click", () => {
+      void openSavedDecisionModal(payload.id, viewBtn);
+    });
+    savedLine.appendChild(viewBtn);
   } else {
     savedLine.textContent = "Saved as decision: not persisted (database unavailable)";
   }
@@ -871,33 +1150,42 @@ function renderDecisionResponse(payload) {
   );
   debugPanel.appendChild(debugMeta);
 
-  const apiCallBox = el("div", "debug-api-inline");
   const reqPayload = state.lastRequest ?? { lines: [], options: { allowSplit: true } };
   const curlCmd = buildAllocationCurl(window.location.origin, reqPayload);
 
-  const copyRow = el("div", "debug-actions-row");
-  const copyBtn = el("button", "btn btn-outline btn-sm", "Copy as curl");
-  copyBtn.type = "button";
-  const copyStatus = el("span", "copy-feedback", "");
-  copyStatus.setAttribute("aria-live", "polite");
-  const reqPre = el("pre", "raw-json-pre", JSON.stringify(reqPayload, null, 2));
-  const resPre = el("pre", "raw-json-pre", JSON.stringify(payload, null, 2));
+  const debugActionsRow = el("div", "debug-actions-row");
+  const apiCallBtn = el("button", "btn btn-outline btn-sm", "API call");
+  apiCallBtn.type = "button";
+  apiCallBtn.id = "open-api-call-btn";
+  apiCallBtn.addEventListener("click", () => {
+    openApiCallModal(apiCallBtn);
+  });
 
-  copyBtn.addEventListener("click", () => {
-    void copyTextToClipboard(curlCmd, reqPre).then((ok) => {
-      copyStatus.textContent = ok ? "Copied" : "Select and copy below";
+  const inlineCopyBtn = el("button", "btn btn-outline btn-sm", "Copy as curl");
+  inlineCopyBtn.type = "button";
+  const inlineCopyStatus = el("span", "copy-feedback", "");
+  inlineCopyStatus.setAttribute("aria-live", "polite");
+
+  const inlineJsonDetails = el("details", "raw-json-details");
+  const inlineJsonSummary = el("summary", undefined, "Request & response JSON");
+  const inlineReqPre = el("pre", "raw-json-pre", JSON.stringify(reqPayload, null, 2));
+  const inlineResPre = el("pre", "raw-json-pre", JSON.stringify(payload, null, 2));
+  inlineJsonDetails.append(
+    inlineJsonSummary,
+    el("p", "sub-label", "Request JSON"),
+    inlineReqPre,
+    el("p", "sub-label", "Response JSON"),
+    inlineResPre,
+  );
+
+  inlineCopyBtn.addEventListener("click", () => {
+    void copyTextToClipboard(curlCmd, inlineReqPre).then((ok) => {
+      inlineCopyStatus.textContent = ok ? "Copied" : "Open API call to copy";
     });
   });
 
-  copyRow.append(copyBtn, copyStatus);
-  apiCallBox.append(
-    copyRow,
-    el("p", "sub-label", "Request JSON (POST /api/v1/allocations)"),
-    reqPre,
-    el("p", "sub-label", `Response JSON (${state.lastHttpStatus ?? 201})`),
-    resPre,
-  );
-  debugPanel.appendChild(apiCallBox);
+  debugActionsRow.append(apiCallBtn, inlineCopyBtn, inlineCopyStatus);
+  debugPanel.append(debugActionsRow, inlineJsonDetails);
 
   metaBlock.appendChild(debugPanel);
   fragment.appendChild(metaBlock);
@@ -1017,6 +1305,7 @@ async function loadCatalog() {
     state.products = body.products;
     state.productsById = new Map(body.products.map((p) => [p.id, p]));
     state.warehouses = body.warehouses;
+    state.warehousesById = new Map(body.warehouses.map((w) => [w.id, w]));
 
     if (errorBanner) {
       errorBanner.hidden = true;
@@ -1079,6 +1368,15 @@ async function loadHealth() {
 }
 
 function init() {
+  setupModalDialogs();
+
+  const howBtn = document.getElementById("how-it-decides-btn");
+  if (howBtn) {
+    howBtn.addEventListener("click", () => {
+      openModalDialog("rules-modal", howBtn);
+    });
+  }
+
   const storedDetail = readStoredPreference(DETAIL_STORAGE_KEY, "full");
   applyDetailLevel(storedDetail, false);
 

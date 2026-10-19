@@ -17,6 +17,9 @@
             Picks the warehouse(s) that fulfil a medical-supply order, and says why.
           </p>
         </div>
+        <button type="button" id="how-it-decides-btn" class="btn btn-outline">
+          How it decides
+        </button>
       </div>
     </header>
 
@@ -180,5 +183,116 @@
         <p id="health-footer" class="footer-meta">Checking service health...</p>
       </div>
     </footer>
+
+    <!-- W4-a: How it decides modal (#25) -->
+    <dialog id="rules-modal" class="app-modal" closedby="any" aria-labelledby="rules-modal-title">
+      <div class="modal-surface">
+        <div class="modal-header">
+          <h2 id="rules-modal-title">How it decides</h2>
+          <button
+            type="button"
+            class="btn btn-outline btn-sm modal-close-btn"
+            data-close-modal
+            aria-label="Close How it decides dialog"
+          >
+            × Close
+          </button>
+        </div>
+        <div class="modal-body">
+          <ol class="rules-list">
+            <li>
+              <strong>Cold chain:</strong> a cold-chain product only ships from a warehouse with
+              both refrigerated storage and refrigerated vans. Warehouses holding stock without a
+              refrigerated fleet (such as W02 and W06) are excluded and reported.
+            </li>
+            <li>
+              <strong>Cost:</strong> travel distance (km) plus a fixed 20 km overhead for each
+              shipment (dispatch, paperwork, and hospital receiving check).
+            </li>
+            <li>
+              <strong>Ranking:</strong> fill the most units first, then lowest total cost, then the
+              earliest last arrival (shortest longest trip), then fewer shipments, then alphabetical
+              warehouse ID.
+            </li>
+            <li>
+              <strong>Split policy:</strong> when split shipments are allowed (default), an order
+              may ship from several warehouses when that's the only way to fill it or when splitting
+              is cheaper (each extra shipment adds 20 km). When off, a single warehouse ships what
+              it can and any remaining units are reported as <code>PARTIAL</code> (back-ordered).
+            </li>
+          </ol>
+          <p class="modal-note">All distances are measured from the single customer location.</p>
+        </div>
+      </div>
+    </dialog>
+
+    <!-- W4-b: Warehouse detail modal (#41) -->
+    <dialog
+      id="warehouse-modal"
+      class="app-modal"
+      closedby="any"
+      aria-labelledby="warehouse-modal-title"
+    >
+      <div class="modal-surface">
+        <div class="modal-header">
+          <h2 id="warehouse-modal-title">Warehouse</h2>
+          <button
+            type="button"
+            class="btn btn-outline btn-sm modal-close-btn"
+            data-close-modal
+            aria-label="Close warehouse dialog"
+          >
+            × Close
+          </button>
+        </div>
+        <div id="warehouse-modal-body" class="modal-body"></div>
+      </div>
+    </dialog>
+
+    <!-- W4-c: Saved decision modal (#7) -->
+    <dialog
+      id="saved-decision-modal"
+      class="app-modal"
+      closedby="any"
+      aria-labelledby="saved-decision-modal-title"
+    >
+      <div class="modal-surface">
+        <div class="modal-header">
+          <h2 id="saved-decision-modal-title">Saved decision</h2>
+          <button
+            type="button"
+            class="btn btn-outline btn-sm modal-close-btn"
+            data-close-modal
+            aria-label="Close saved decision dialog"
+          >
+            × Close
+          </button>
+        </div>
+        <div id="saved-decision-modal-body" class="modal-body"></div>
+      </div>
+    </dialog>
+
+    <!-- W4-d: API call modal (#40) -->
+    <dialog
+      id="api-call-modal"
+      class="app-modal"
+      closedby="any"
+      aria-labelledby="api-call-modal-title"
+    >
+      <div class="modal-surface">
+        <div class="modal-header">
+          <h2 id="api-call-modal-title">API call</h2>
+          <button
+            type="button"
+            class="btn btn-outline btn-sm modal-close-btn"
+            data-close-modal
+            aria-label="Close API call dialog"
+          >
+            × Close
+          </button>
+        </div>
+        <div id="api-call-modal-body" class="modal-body"></div>
+      </div>
+    </dialog>
   </body>
 </html>
