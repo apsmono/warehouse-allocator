@@ -1,6 +1,16 @@
-import { formatProductDisplay } from "./format.js";
+import {
+  buildAllocationCurl,
+  computeCostBreakdown,
+  formatExclusions,
+  formatProductDisplay,
+  formatShortDecisionId,
+  formatStatusHint,
+  splitWhyNot,
+} from "./format.js";
 
 const MAX_LINES = 20;
+const DETAIL_STORAGE_KEY = "wa_detail_level";
+const VALID_DETAIL_LEVELS = new Set(["simple", "full", "debug"]);
 
 const EXAMPLE_ORDERS = {
   "example-g03": [{ productId: "P002", quantity: 10 }],
@@ -14,6 +24,10 @@ const state = {
   warehouses: [],
   lineRows: [],
   submitting: false,
+  detailLevel: "full",
+  lastRequest: null,
+  lastResponse: null,
+  lastHttpStatus: null,
 };
 
 function el(tag, className, text) {
@@ -27,15 +41,75 @@ function el(tag, className, text) {
   return node;
 }
 
+function readStoredPreference(key, fallback) {
+  try {
+    const raw = window.localStorage.getItem(key);
+    return raw ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function writeStoredPreference(key, value) {
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    // Ignore when localStorage is blocked or unavailable
+  }
+}
+
+function applyDetailLevel(level, persist = true) {
+  const normalized = VALID_DETAIL_LEVELS.has(level) ? level : "full";
+  state.detailLevel = normalized;
+
+  const region = document.getElementById("result-region");
+  if (region) {
+    region.setAttribute("data-detail", normalized);
+  }
+
+  const buttons = document.querySelectorAll("[data-detail-level]");
+  for (const btn of buttons) {
+    const isMatch = btn.getAttribute("data-detail-level") === normalized;
+    btn.classList.toggle("is-active", isMatch);
+    btn.setAttribute("aria-pressed", String(isMatch));
+  }
+
+  if (persist) {
+    writeStoredPreference(DETAIL_STORAGE_KEY, normalized);
+  }
+}
+
+function focusAndScrollResultHeading() {
+  if (document.querySelector("dialog[open]")) {
+    return;
+  }
+  const heading = document.getElementById("result-heading");
+  if (!heading) {
+    return;
+  }
+
+  const prefersReducedMotion =
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  heading.focus({ preventScroll: true });
+  if (typeof heading.scrollIntoView === "function") {
+    heading.scrollIntoView({
+      behavior: prefersReducedMotion ? "auto" : "smooth",
+      block: "nearest",
+    });
+  }
+}
+
 function formatProductLabel(product) {
   return product.requiresColdChain
     ? `${product.id} — ${product.name} [Cold]`
     : `${product.id} — ${product.name}`;
 }
 
-function getProductName(productId) {
+function getProductDisplay(productId) {
   const product = state.productsById.get(productId);
-  return product ? formatProductDisplay(product, productId).split(" · ")[1] : productId;
+  return formatProductDisplay(product, productId);
 }
 
 function updateLineControls() {
@@ -238,6 +312,7 @@ function renderValidationError(details, fallbackMessage) {
   }
 
   container.replaceChildren(alertBox);
+  focusAndScrollResultHeading();
 }
 
 function renderErrorMessage(message) {
@@ -247,6 +322,7 @@ function renderErrorMessage(message) {
   }
   const alertBox = el("div", "alert alert-error", message);
   container.replaceChildren(alertBox);
+  focusAndScrollResultHeading();
 }
 
 function createTableScrollWrapper(table, ariaLabel) {
@@ -259,11 +335,11 @@ function createTableScrollWrapper(table, ariaLabel) {
 }
 
 function buildShipmentsTable(shipments) {
-  const table = document.createElement("table");
+  const table = el("table", "responsive-table shipments-table");
   const thead = document.createElement("thead");
   const headerRow = document.createElement("tr");
 
-  for (const col of ["Warehouse", "City", "Distance (km)", "Items"]) {
+  for (const col of ["Warehouse", "City", "Distance", "Items"]) {
     const th = el("th", undefined, col);
     th.scope = "col";
     headerRow.appendChild(th);
@@ -276,15 +352,23 @@ function buildShipmentsTable(shipments) {
     const tr = document.createElement("tr");
     const whTh = el("th", undefined, shipment.warehouseId);
     whTh.scope = "row";
+    whTh.setAttribute("data-label", "Warehouse");
     tr.appendChild(whTh);
 
-    tr.appendChild(el("td", undefined, shipment.city));
-    tr.appendChild(el("td", "num-cell", `${shipment.distanceKm} km`));
+    const cityTd = el("td", undefined, shipment.city);
+    cityTd.setAttribute("data-label", "City");
+    tr.appendChild(cityTd);
+
+    const distTd = el("td", "num-cell", `${shipment.distanceKm} km`);
+    distTd.setAttribute("data-label", "Distance");
+    tr.appendChild(distTd);
 
     const itemsText = (shipment.items || [])
-      .map((item) => `${getProductName(item.productId)} × ${item.quantity}`)
+      .map((item) => `${getProductDisplay(item.productId)} × ${item.quantity}`)
       .join(", ");
-    tr.appendChild(el("td", undefined, itemsText));
+    const itemsTd = el("td", undefined, itemsText);
+    itemsTd.setAttribute("data-label", "Items");
+    tr.appendChild(itemsTd);
 
     tbody.appendChild(tr);
   }
@@ -294,7 +378,7 @@ function buildShipmentsTable(shipments) {
 }
 
 function buildShortfallsTable(shortfalls) {
-  const table = document.createElement("table");
+  const table = el("table", "responsive-table shortfalls-table");
   const thead = document.createElement("thead");
   const headerRow = document.createElement("tr");
 
@@ -309,14 +393,26 @@ function buildShortfallsTable(shortfalls) {
   const tbody = document.createElement("tbody");
   for (const sf of shortfalls) {
     const tr = document.createElement("tr");
-    const prodTh = el("th", undefined, `${getProductName(sf.productId)} (${sf.productId})`);
+    const prodTh = el("th", undefined, getProductDisplay(sf.productId));
     prodTh.scope = "row";
+    prodTh.setAttribute("data-label", "Product");
     tr.appendChild(prodTh);
 
-    tr.appendChild(el("td", "num-cell", String(sf.requested)));
-    tr.appendChild(el("td", "num-cell", String(sf.allocated)));
-    tr.appendChild(el("td", "num-cell", String(sf.missing)));
-    tr.appendChild(el("td", undefined, sf.reason));
+    const reqTd = el("td", "num-cell", String(sf.requested));
+    reqTd.setAttribute("data-label", "Requested");
+    tr.appendChild(reqTd);
+
+    const allocTd = el("td", "num-cell", String(sf.allocated));
+    allocTd.setAttribute("data-label", "Allocated");
+    tr.appendChild(allocTd);
+
+    const missTd = el("td", "num-cell", String(sf.missing));
+    missTd.setAttribute("data-label", "Missing");
+    tr.appendChild(missTd);
+
+    const reasonTd = el("td", undefined, sf.reason);
+    reasonTd.setAttribute("data-label", "Reason");
+    tr.appendChild(reasonTd);
 
     tbody.appendChild(tr);
   }
@@ -325,8 +421,49 @@ function buildShortfallsTable(shortfalls) {
   return createTableScrollWrapper(table, "Order shortfalls");
 }
 
+function buildExclusionsTable(excluded) {
+  const rows = formatExclusions(excluded, state.warehouses);
+  const table = el("table", "responsive-table exclusions-table");
+  const thead = document.createElement("thead");
+  const headerRow = document.createElement("tr");
+
+  for (const col of ["Warehouse", "Holds", "Why it can't ship"]) {
+    const th = el("th", undefined, col);
+    th.scope = "col";
+    headerRow.appendChild(th);
+  }
+  thead.appendChild(headerRow);
+  table.appendChild(thead);
+
+  const tbody = document.createElement("tbody");
+  for (const row of rows) {
+    const tr = document.createElement("tr");
+
+    const whTh = el("th", undefined, row.warehouseId);
+    whTh.scope = "row";
+    whTh.setAttribute("data-label", "Warehouse");
+    tr.appendChild(whTh);
+
+    const holdsTd = el("td", undefined, `${row.holdsText} (${row.productId})`);
+    holdsTd.setAttribute("data-label", "Holds");
+    tr.appendChild(holdsTd);
+
+    const whyTd = el("td", undefined);
+    whyTd.setAttribute("data-label", "Why it can't ship");
+    const badge = el("span", "exclusion-badge", row.reasonLabel);
+    badge.title = row.code;
+    whyTd.appendChild(badge);
+    tr.appendChild(whyTd);
+
+    tbody.appendChild(tr);
+  }
+
+  table.appendChild(tbody);
+  return createTableScrollWrapper(table, "Excluded warehouses");
+}
+
 function buildAlternativesTable(alternatives, costUnit) {
-  const table = document.createElement("table");
+  const table = el("table", "responsive-table alternatives-table");
   const thead = document.createElement("thead");
   const headerRow = document.createElement("tr");
 
@@ -343,19 +480,53 @@ function buildAlternativesTable(alternatives, costUnit) {
     const tr = document.createElement("tr");
     const whTh = el("th", undefined, (alt.warehouses || []).join(" + "));
     whTh.scope = "row";
+    whTh.setAttribute("data-label", "Warehouses");
     tr.appendChild(whTh);
 
-    tr.appendChild(el("td", "num-cell", String(alt.unitsFilled)));
-    tr.appendChild(el("td", "num-cell", `${alt.totalCost} ${costUnit}`));
+    const unitsTd = el("td", "num-cell", String(alt.unitsFilled));
+    unitsTd.setAttribute("data-label", "Units filled");
+    tr.appendChild(unitsTd);
+
+    const costTd = el("td", "num-cell", `${alt.totalCost} ${costUnit}`);
+    costTd.setAttribute("data-label", "Total cost");
+    tr.appendChild(costTd);
+
     const sign = alt.delta >= 0 ? "+" : "";
-    tr.appendChild(el("td", "num-cell", `${sign}${alt.delta} ${costUnit}`));
-    tr.appendChild(el("td", undefined, alt.whyNot));
+    const deltaTd = el("td", "num-cell", `${sign}${alt.delta} ${costUnit}`);
+    deltaTd.setAttribute("data-label", "Delta");
+    tr.appendChild(deltaTd);
+
+    const whyNotTd = el("td", undefined, splitWhyNot(alt.whyNot));
+    whyNotTd.setAttribute("data-label", "Why not");
+    tr.appendChild(whyNotTd);
 
     tbody.appendChild(tr);
   }
 
   table.appendChild(tbody);
   return createTableScrollWrapper(table, "Alternative warehouse combinations");
+}
+
+async function copyTextToClipboard(text, fallbackPre) {
+  if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // Fall through to selection fallback
+    }
+  }
+  if (fallbackPre && typeof window.getSelection === "function") {
+    const selection = window.getSelection();
+    if (selection) {
+      const range = document.createRange();
+      range.selectNodeContents(fallbackPre);
+      selection.removeAllRanges();
+      selection.addRange(range);
+      return true;
+    }
+  }
+  return false;
 }
 
 function renderDecisionResponse(payload) {
@@ -367,87 +538,147 @@ function renderDecisionResponse(payload) {
   const decision = payload.decision;
   const fragment = document.createDocumentFragment();
 
+  // 1. Core decision block (shown at Simple, Full, Debug)
+  const coreBlock = el("div", "decision-core");
+
   const banner = el("div", "decision-banner");
   const badge = el("span", `status-badge status-${decision.status}`, decision.status);
+  const statusHint = el("span", "status-hint", formatStatusHint(decision));
+  banner.append(badge, statusHint);
+  coreBlock.appendChild(banner);
+
   const summary = el("p", "decision-summary", decision.summary);
-  banner.append(badge, summary);
-  fragment.appendChild(banner);
+  coreBlock.appendChild(summary);
 
-  const costLine = el(
-    "p",
-    "decision-cost",
-    `Total cost: ${decision.totalCost} ${decision.costUnit} · Evaluated combinations: ${decision.meta.evaluatedCombinations} · Shipment overhead: ${decision.meta.shipmentOverhead} ${decision.costUnit}`,
-  );
-  fragment.appendChild(costLine);
+  const breakdown = computeCostBreakdown(decision);
+  const costLine = el("p", "decision-cost");
+  costLine.appendChild(document.createTextNode("Cost "));
+  const totalStrong = el("strong", undefined, `${breakdown.computedTotal} ${breakdown.costUnit}`);
+  costLine.appendChild(totalStrong);
+  if (breakdown.shipmentCount > 0) {
+    costLine.appendChild(document.createTextNode(` = ${breakdown.formulaRightSide}`));
+  }
+  coreBlock.appendChild(costLine);
 
-  fragment.appendChild(el("h3", undefined, "Shipments"));
+  coreBlock.appendChild(el("h3", undefined, "Shipments"));
   if (Array.isArray(decision.shipments) && decision.shipments.length > 0) {
-    fragment.appendChild(buildShipmentsTable(decision.shipments));
+    coreBlock.appendChild(buildShipmentsTable(decision.shipments));
   } else {
-    fragment.appendChild(el("p", "muted-text", "No shipments allocated."));
+    coreBlock.appendChild(el("p", "muted-text", "No shipments allocated."));
   }
 
   if (Array.isArray(decision.shortfalls) && decision.shortfalls.length > 0) {
-    fragment.appendChild(el("h3", undefined, "Shortfalls"));
-    fragment.appendChild(buildShortfallsTable(decision.shortfalls));
+    coreBlock.appendChild(el("h3", undefined, "Shortfalls"));
+    coreBlock.appendChild(buildShortfallsTable(decision.shortfalls));
   }
 
-  fragment.appendChild(el("h3", undefined, "Reasons"));
+  fragment.appendChild(coreBlock);
+
+  // 2. Explanation block ("Why", shown at Full and Debug)
+  const whyBlock = el("div", "decision-why detail-full-only");
+
+  whyBlock.appendChild(el("h3", undefined, "Why this choice"));
   if (Array.isArray(decision.reasons) && decision.reasons.length > 0) {
     const reasonsList = el("ul", "reasons-list");
     for (const reason of decision.reasons) {
       reasonsList.appendChild(el("li", undefined, reason));
     }
-    fragment.appendChild(reasonsList);
+    whyBlock.appendChild(reasonsList);
   } else {
-    fragment.appendChild(el("p", "muted-text", "No additional reasons recorded."));
+    whyBlock.appendChild(el("p", "muted-text", "No additional reasons recorded."));
   }
 
-  fragment.appendChild(el("h3", undefined, "Why not…"));
+  whyBlock.appendChild(el("h3", undefined, "Why not the others"));
   if (Array.isArray(decision.excluded) && decision.excluded.length > 0) {
-    const excludedList = el("ul", "excluded-list");
-    for (const ex of decision.excluded) {
-      excludedList.appendChild(el("li", undefined, `${ex.detail} (${ex.code})`));
-    }
-    fragment.appendChild(excludedList);
+    const cantShipLabel = el("p", "sub-label", "Can't ship:");
+    whyBlock.append(cantShipLabel, buildExclusionsTable(decision.excluded));
   } else {
-    fragment.appendChild(
+    whyBlock.appendChild(
       el("p", "muted-text", "No stocked warehouses were excluded by cold-chain rules."),
     );
   }
 
   if (Array.isArray(decision.alternatives) && decision.alternatives.length > 0) {
-    fragment.appendChild(buildAlternativesTable(decision.alternatives, decision.costUnit));
+    const altLabel = el("p", "sub-label", "Alternatives:");
+    whyBlock.append(altLabel, buildAlternativesTable(decision.alternatives, decision.costUnit));
   } else {
-    fragment.appendChild(el("p", "muted-text", "No alternative warehouse combinations available."));
+    whyBlock.appendChild(el("p", "muted-text", "No alternative warehouse combinations available."));
   }
 
-  const metaLine = el("p", "decision-meta-line");
+  fragment.appendChild(whyBlock);
+
+  // 3. Meta + Debug footer block
+  const metaBlock = el("div", "decision-meta-block");
+
+  const savedLine = el("p", "decision-meta-line detail-full-only");
   if (payload.id) {
-    metaLine.appendChild(document.createTextNode("Decision ID: "));
-    const link = el("a", undefined, payload.id);
-    link.href = `/api/v1/allocations/${encodeURIComponent(payload.id)}`;
-    metaLine.appendChild(link);
+    const shortId = formatShortDecisionId(payload.id);
+    savedLine.appendChild(document.createTextNode("Saved as decision "));
+    const codeEl = el("code", "decision-short-id", shortId);
+    savedLine.appendChild(codeEl);
+    savedLine.appendChild(document.createTextNode(" · "));
+    const viewLink = el("a", "view-json-link", "view JSON");
+    viewLink.href = `/api/v1/allocations/${encodeURIComponent(payload.id)}`;
+    savedLine.appendChild(viewLink);
   } else {
-    metaLine.textContent = "Decision ID: Not saved (database unavailable)";
+    savedLine.textContent = "Saved as decision: not persisted (database unavailable)";
   }
-  fragment.appendChild(metaLine);
+  metaBlock.appendChild(savedLine);
 
-  const detailsEl = el("details", "raw-json-details");
-  const summaryEl = el("summary", undefined, "Raw JSON response");
-  const preEl = el("pre", "raw-json-pre", JSON.stringify(payload, null, 2));
-  detailsEl.append(summaryEl, preEl);
-  fragment.appendChild(detailsEl);
+  const debugPanel = el("div", "debug-panel detail-debug-only");
+  const debugMeta = el(
+    "p",
+    "debug-meta-line",
+    `Evaluated combinations ${decision.meta.evaluatedCombinations} · overhead ${decision.meta.shipmentOverhead} ${decision.costUnit} · engine ${decision.meta.engineVersion}`,
+  );
+  debugPanel.appendChild(debugMeta);
+
+  const apiCallBox = el("div", "debug-api-inline");
+  const reqPayload = state.lastRequest ?? { lines: [], options: { allowSplit: true } };
+  const curlCmd = buildAllocationCurl(window.location.origin, reqPayload);
+
+  const copyRow = el("div", "debug-actions-row");
+  const copyBtn = el("button", "btn btn-outline btn-sm", "Copy as curl");
+  copyBtn.type = "button";
+  const copyStatus = el("span", "copy-feedback", "");
+  copyStatus.setAttribute("aria-live", "polite");
+  const reqPre = el("pre", "raw-json-pre", JSON.stringify(reqPayload, null, 2));
+  const resPre = el("pre", "raw-json-pre", JSON.stringify(payload, null, 2));
+
+  copyBtn.addEventListener("click", () => {
+    void copyTextToClipboard(curlCmd, reqPre).then((ok) => {
+      copyStatus.textContent = ok ? "Copied" : "Select and copy below";
+    });
+  });
+
+  copyRow.append(copyBtn, copyStatus);
+  apiCallBox.append(
+    copyRow,
+    el("p", "sub-label", "Request JSON (POST /api/v1/allocations)"),
+    reqPre,
+    el("p", "sub-label", `Response JSON (${state.lastHttpStatus ?? 201})`),
+    resPre,
+  );
+  debugPanel.appendChild(apiCallBox);
+
+  metaBlock.appendChild(debugPanel);
+  fragment.appendChild(metaBlock);
 
   container.replaceChildren(fragment);
+  focusAndScrollResultHeading();
 }
 
 function setSubmittingState(isSubmitting) {
   state.submitting = isSubmitting;
+  const form = document.getElementById("order-form");
+  if (form) {
+    form.setAttribute("aria-busy", String(isSubmitting));
+  }
   const submitBtn = document.getElementById("submit-btn");
   if (submitBtn) {
     submitBtn.disabled = isSubmitting;
-    submitBtn.textContent = isSubmitting ? "Allocating..." : "Allocate order";
+    submitBtn.setAttribute("aria-busy", String(isSubmitting));
+    submitBtn.textContent = isSubmitting ? "Allocating…" : "Allocate order";
   }
 
   for (const btnId of Object.keys(EXAMPLE_ORDERS)) {
@@ -477,6 +708,12 @@ async function submitCurrentOrder() {
     };
   });
 
+  const requestBody = {
+    lines,
+    options: { allowSplit },
+  };
+  state.lastRequest = requestBody;
+
   setSubmittingState(true);
   try {
     const res = await fetch("/api/v1/allocations", {
@@ -484,16 +721,15 @@ async function submitCurrentOrder() {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        lines,
-        options: { allowSplit },
-      }),
+      body: JSON.stringify(requestBody),
     });
 
+    state.lastHttpStatus = res.status;
     const body = await res.json().catch(() => null);
 
     if (res.status === 200 || res.status === 201) {
       if (body && body.decision) {
+        state.lastResponse = body;
         renderDecisionResponse(body);
       } else {
         renderErrorMessage("Received an unexpected response from the server.");
@@ -602,6 +838,17 @@ async function loadHealth() {
 }
 
 function init() {
+  const storedDetail = readStoredPreference(DETAIL_STORAGE_KEY, "full");
+  applyDetailLevel(storedDetail, false);
+
+  const detailButtons = document.querySelectorAll("[data-detail-level]");
+  for (const btn of detailButtons) {
+    btn.addEventListener("click", () => {
+      const targetLevel = btn.getAttribute("data-detail-level") || "full";
+      applyDetailLevel(targetLevel, true);
+    });
+  }
+
   const form = document.getElementById("order-form");
   if (form) {
     form.addEventListener("submit", (event) => {

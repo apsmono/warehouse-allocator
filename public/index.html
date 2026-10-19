@@ -10,21 +10,29 @@
   </head>
   <body>
     <header class="site-header">
-      <div class="container">
-        <h1>Warehouse Allocator</h1>
-        <p class="subtitle">
-          Medical-supply order allocation across regional warehouses with cold-chain compliance and
-          cost explanation.
-        </p>
+      <div class="container header-inner">
+        <div>
+          <h1>Warehouse Allocator</h1>
+          <p class="subtitle">
+            Picks the warehouse(s) that fulfil a medical-supply order, and says why.
+          </p>
+        </div>
       </div>
     </header>
 
     <main class="container main-content">
-      <section class="card" aria-labelledby="order-heading">
+      <section class="card order-section" aria-labelledby="order-heading">
         <div class="section-header">
-          <h2 id="order-heading">Build an Order</h2>
-          <div class="examples-group" role="group" aria-label="Example orders">
-            <span class="examples-label">Try an example:</span>
+          <h2 id="order-heading">1 · Order</h2>
+        </div>
+
+        <p id="customer-location-note" class="customer-location-note">
+          Delivering to: the customer location. All distances are measured from here.
+        </p>
+
+        <div class="examples-block" role="group" aria-label="Example orders">
+          <span class="examples-label">Try an example</span>
+          <div class="examples-group">
             <button type="button" class="btn btn-secondary" id="example-g03">
               Cold-chain trap (G03)
             </button>
@@ -62,21 +70,42 @@
         class="card result-region"
         aria-labelledby="result-heading"
         aria-live="polite"
+        data-detail="full"
       >
-        <h2 id="result-heading">Allocation Decision</h2>
-        <div id="result-content">
-          <p class="muted-text">
-            Submit an order or choose one of the example scenarios above to view the allocation
-            decision and explanation.
-          </p>
+        <div class="section-header decision-section-header">
+          <h2 id="result-heading" tabindex="-1">2 · Decision</h2>
+          <div class="detail-toggle" role="group" aria-label="Decision detail level">
+            <span class="detail-toggle-label">Detail:</span>
+            <div class="segmented-control">
+              <button type="button" class="seg-btn" data-detail-level="simple" aria-pressed="false">
+                Simple
+              </button>
+              <button
+                type="button"
+                class="seg-btn is-active"
+                data-detail-level="full"
+                aria-pressed="true"
+              >
+                Full
+              </button>
+              <button type="button" class="seg-btn" data-detail-level="debug" aria-pressed="false">
+                Debug
+              </button>
+            </div>
+          </div>
+        </div>
+        <div id="result-content" class="result-content">
+          <p class="muted-text">Pick an example or build an order.</p>
         </div>
       </section>
 
-      <section class="card" aria-labelledby="stock-heading">
-        <h2 id="stock-heading">Warehouse Stock Reference</h2>
+      <section class="card stock-section" aria-labelledby="stock-heading">
+        <div class="section-header">
+          <h2 id="stock-heading">3 · Stock reference</h2>
+        </div>
         <p class="section-note">
-          Cold-chain products (marked with <strong>[Cold]</strong>) require a warehouse with both
-          refrigerated storage and refrigerated fleet vehicles.
+          Distances are from the customer location. Cold-chain products require a warehouse with
+          both refrigerated storage and refrigerated vans.
         </p>
         <div
           id="stock-table-wrapper"
