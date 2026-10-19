@@ -1,3 +1,5 @@
+import { formatProductDisplay } from "./format.js";
+
 const MAX_LINES = 20;
 
 const EXAMPLE_ORDERS = {
@@ -33,7 +35,7 @@ function formatProductLabel(product) {
 
 function getProductName(productId) {
   const product = state.productsById.get(productId);
-  return product ? product.name : productId;
+  return product ? formatProductDisplay(product, productId).split(" · ")[1] : productId;
 }
 
 function updateLineControls() {

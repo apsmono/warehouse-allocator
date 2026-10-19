@@ -12,8 +12,16 @@
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
     "noEmit": true,
+    "allowJs": true,
     "skipLibCheck": true,
     "types": ["node"]
   },
-  "include": ["src/**/*.ts", "api/**/*.ts", "db/**/*.ts", "test/**/*.ts", "vitest.config.ts"]
+  "include": [
+    "src/**/*.ts",
+    "api/**/*.ts",
+    "db/**/*.ts",
+    "test/**/*.ts",
+    "public/format.js",
+    "vitest.config.ts"
+  ]
 }
