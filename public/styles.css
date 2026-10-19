@@ -699,6 +699,124 @@ tbody tr:last-child td {
   display: none !important;
 }
 
+.stock-reference-table th,
+.stock-reference-table td {
+  vertical-align: middle;
+}
+
+.stock-reference-table .sticky-col {
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: 2;
+  background-color: var(--surface);
+  box-shadow: 1px 0 0 var(--border);
+}
+
+.stock-reference-table thead .sticky-col {
+  background-color: var(--secondary-bg);
+  z-index: 3;
+}
+
+.wh-col-header {
+  text-align: right;
+  min-width: 6.5rem;
+}
+
+.wh-header-id {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.wh-header-meta {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.wh-header-caps {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.prod-row-header {
+  min-width: 12rem;
+  max-width: 17rem;
+  white-space: normal;
+}
+
+.prod-row-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.prod-row-title {
+  font-weight: 600;
+}
+
+.prod-col-title {
+  font-weight: 600;
+  white-space: normal;
+  min-width: 8rem;
+}
+
+.stock-cell-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.1rem;
+}
+
+.stock-zero-dash {
+  color: var(--text-muted);
+  opacity: 0.65;
+}
+
+.stock-qty-ineligible {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.stock-note-ineligible {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--error-text);
+  white-space: nowrap;
+}
+
+.stock-ships-badge {
+  display: inline-block;
+  padding: 0.1rem 0.4rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--status-full-text);
+  background-color: var(--status-full-bg);
+  border: 1px solid var(--status-full-border);
+  border-radius: 0.25rem;
+  white-space: nowrap;
+}
+
+.stock-reference-table tr.is-ordered-product > th,
+.stock-reference-table tr.is-ordered-product > td,
+.stock-reference-table th.is-ordered-product,
+.stock-reference-table td.is-ordered-product {
+  background-color: #f0f9ff;
+}
+
+.stock-reference-table th.is-chosen-warehouse,
+.stock-reference-table tr.is-chosen-warehouse > th,
+.stock-reference-table td.is-chosen-warehouse {
+  background-color: #eff6ff;
+}
+
+.stock-reference-table td.is-allocated-cell {
+  background-color: var(--status-full-bg);
+  font-weight: 700;
+}
+
 @media (max-width: 767px) {
   .container {
     padding-inline: 0.75rem;

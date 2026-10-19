@@ -2,6 +2,7 @@ import {
   buildAllocationCurl,
   computeCostBreakdown,
   computeShippableStock,
+  describeStockCell,
   findDuplicateMerges,
   formatExclusions,
   formatOrderSummary,
@@ -13,7 +14,9 @@ import {
 
 const MAX_LINES = 20;
 const DETAIL_STORAGE_KEY = "wa_detail_level";
+const ORIENTATION_STORAGE_KEY = "wa_stock_orientation";
 const VALID_DETAIL_LEVELS = new Set(["simple", "full", "debug"]);
+const VALID_ORIENTATIONS = new Set(["products-rows", "warehouses-rows"]);
 
 const EXAMPLE_ORDERS = {
   "example-g03": [{ productId: "P002", quantity: 10 }],
@@ -28,6 +31,7 @@ const state = {
   lineRows: [],
   submitting: false,
   detailLevel: "full",
+  stockOrientation: "products-rows",
   lastRequest: null,
   lastResponse: null,
   lastHttpStatus: null,
@@ -300,64 +304,229 @@ function setOrderLines(lines) {
   }
 }
 
+function applyStockOrientation(orientation, persist = true) {
+  const normalized = VALID_ORIENTATIONS.has(orientation) ? orientation : "products-rows";
+  state.stockOrientation = normalized;
+
+  const toggleBtn = document.getElementById("stock-orientation-btn");
+  if (toggleBtn) {
+    toggleBtn.textContent =
+      normalized === "products-rows" ? "Products × Warehouses ⇄" : "Warehouses × Products ⇄";
+  }
+
+  if (persist) {
+    writeStoredPreference(ORIENTATION_STORAGE_KEY, normalized);
+  }
+
+  if (state.products.length > 0 && state.warehouses.length > 0) {
+    renderStockTable(state.products, state.warehouses);
+  }
+}
+
+function getDecisionHighlightContext() {
+  const orderedProductIds = new Set();
+  const chosenWarehouseIds = new Set();
+  const allocatedByKey = new Map();
+
+  const decision = state.lastResponse?.decision;
+  if (decision && state.lastRequest && Array.isArray(state.lastRequest.lines)) {
+    for (const line of state.lastRequest.lines) {
+      if (line && line.productId) {
+        orderedProductIds.add(line.productId);
+      }
+    }
+  }
+
+  if (decision && Array.isArray(decision.shipments)) {
+    for (const shipment of decision.shipments) {
+      chosenWarehouseIds.add(shipment.warehouseId);
+      for (const item of shipment.items || []) {
+        orderedProductIds.add(item.productId);
+        const key = `${shipment.warehouseId}:${item.productId}`;
+        allocatedByKey.set(key, (allocatedByKey.get(key) ?? 0) + item.quantity);
+      }
+    }
+  }
+
+  return { orderedProductIds, chosenWarehouseIds, allocatedByKey };
+}
+
+function renderStockDataCell(warehouse, product, allocatedQty, isOrderedProd, isChosenWh) {
+  const desc = describeStockCell(warehouse, product, allocatedQty);
+  const classes = ["num-cell", "stock-data-cell"];
+  if (isOrderedProd) {
+    classes.push("is-ordered-product");
+  }
+  if (isChosenWh) {
+    classes.push("is-chosen-warehouse");
+  }
+  if (desc.state === "allocated") {
+    classes.push("is-allocated-cell");
+  } else if (desc.state === "zero") {
+    classes.push("is-zero-cell");
+  } else if (desc.state === "ineligible-cold") {
+    classes.push("is-ineligible-cell");
+  }
+
+  const td = el("td", classes.join(" "));
+  td.setAttribute("data-warehouse-id", warehouse.id);
+  td.setAttribute("data-product-id", product.id);
+  td.setAttribute("data-cell-state", desc.state);
+
+  if (desc.state === "zero") {
+    td.appendChild(el("span", "stock-zero-dash", "—"));
+  } else if (desc.state === "ineligible-cold") {
+    const cellStack = el("div", "stock-cell-stack");
+    const strikeEl = el("s", "stock-qty-ineligible", desc.primaryText);
+    const noteEl = el("span", "stock-note-ineligible", desc.secondaryText);
+    cellStack.append(strikeEl, document.createTextNode(" "), noteEl);
+    td.appendChild(cellStack);
+  } else if (desc.state === "allocated") {
+    const cellStack = el("div", "stock-cell-stack");
+    const qtySpan = el("span", "stock-qty-allocated", `${desc.quantity} → `);
+    const shipsBadge = el("strong", "stock-ships-badge", desc.secondaryText);
+    cellStack.append(qtySpan, shipsBadge);
+    td.appendChild(cellStack);
+  } else {
+    td.textContent = desc.primaryText;
+  }
+
+  return td;
+}
+
 function renderStockTable(products, warehouses) {
   const wrapper = document.getElementById("stock-table-wrapper");
   if (!wrapper) {
     return;
   }
 
-  const table = document.createElement("table");
+  const { orderedProductIds, chosenWarehouseIds, allocatedByKey } = getDecisionHighlightContext();
+  const table = el("table", "stock-reference-table");
+  table.setAttribute("data-orientation", state.stockOrientation);
+
   const thead = document.createElement("thead");
-  const headerRow = document.createElement("tr");
-
-  const fixedHeaders = ["Warehouse", "City", "Distance", "Cold storage", "Cold fleet"];
-  for (const title of fixedHeaders) {
-    const th = el("th", undefined, title);
-    th.scope = "col";
-    headerRow.appendChild(th);
-  }
-
-  for (const product of products) {
-    const label = product.requiresColdChain
-      ? `${product.id} (${product.name}) [Cold]`
-      : `${product.id} (${product.name})`;
-    const th = el("th", "num-cell", label);
-    th.scope = "col";
-    headerRow.appendChild(th);
-  }
-
-  thead.appendChild(headerRow);
-  table.appendChild(thead);
-
   const tbody = document.createElement("tbody");
-  for (const warehouse of warehouses) {
-    const tr = document.createElement("tr");
 
-    const idTh = el("th", undefined, warehouse.id);
-    idTh.scope = "row";
-    tr.appendChild(idTh);
+  if (state.stockOrientation === "products-rows") {
+    const headerRow = document.createElement("tr");
+    const cornerTh = el("th", "sticky-col", "Product");
+    cornerTh.scope = "col";
+    headerRow.appendChild(cornerTh);
 
-    tr.appendChild(el("td", undefined, warehouse.city));
-    tr.appendChild(el("td", "num-cell", `${warehouse.distanceKm} km`));
-    tr.appendChild(el("td", undefined, warehouse.hasColdStorage ? "Yes" : "No"));
-    tr.appendChild(el("td", undefined, warehouse.hasColdFleet ? "Yes" : "No"));
-
-    const stockMap = new Map();
-    if (Array.isArray(warehouse.stock)) {
-      for (const item of warehouse.stock) {
-        stockMap.set(item.productId, item.quantity);
+    for (const warehouse of warehouses) {
+      const isChosen = chosenWarehouseIds.has(warehouse.id);
+      const thClass = isChosen ? "wh-col-header is-chosen-warehouse" : "wh-col-header";
+      const th = el("th", thClass);
+      th.scope = "col";
+      th.setAttribute("data-warehouse-id", warehouse.id);
+      if (isChosen) {
+        th.setAttribute("data-chosen", "true");
       }
+
+      const idLine = el("div", "wh-header-id", warehouse.id);
+      const metaLine = el(
+        "div",
+        "wh-header-meta",
+        `${warehouse.city} · ${warehouse.distanceKm} km`,
+      );
+      const capsLine = el(
+        "div",
+        "wh-header-caps",
+        `${warehouse.hasColdStorage ? "✓cold" : "✗cold"} ${warehouse.hasColdFleet ? "✓van" : "✗van"}`,
+      );
+      capsLine.title = `Cold storage: ${warehouse.hasColdStorage ? "Yes" : "No"}, Refrigerated vans: ${warehouse.hasColdFleet ? "Yes" : "No"}`;
+
+      th.append(idLine, metaLine, capsLine);
+      headerRow.appendChild(th);
+    }
+
+    thead.appendChild(headerRow);
+
+    for (const product of products) {
+      const isOrdered = orderedProductIds.has(product.id);
+      const tr = el("tr", isOrdered ? "is-ordered-product" : undefined);
+      tr.setAttribute("data-product-id", product.id);
+      if (isOrdered) {
+        tr.setAttribute("data-ordered", "true");
+      }
+
+      const prodTh = el("th", "sticky-col prod-row-header");
+      prodTh.scope = "row";
+      const prodHeaderInner = el("div", "prod-row-header-inner");
+      prodHeaderInner.appendChild(
+        el("span", "prod-row-title", formatProductDisplay(product, product.id)),
+      );
+      if (product.requiresColdChain) {
+        prodHeaderInner.appendChild(el("span", "cold-chain-badge", "❄ Cold"));
+      }
+      prodTh.appendChild(prodHeaderInner);
+      tr.appendChild(prodTh);
+
+      for (const warehouse of warehouses) {
+        const isChosen = chosenWarehouseIds.has(warehouse.id);
+        const alloc = allocatedByKey.get(`${warehouse.id}:${product.id}`) ?? 0;
+        tr.appendChild(renderStockDataCell(warehouse, product, alloc, isOrdered, isChosen));
+      }
+
+      tbody.appendChild(tr);
+    }
+  } else {
+    const headerRow = document.createElement("tr");
+    const fixedHeaders = ["Warehouse", "City", "Distance", "Cold chain"];
+    for (let i = 0; i < fixedHeaders.length; i++) {
+      const th = el("th", i === 0 ? "sticky-col" : undefined, fixedHeaders[i]);
+      th.scope = "col";
+      headerRow.appendChild(th);
     }
 
     for (const product of products) {
-      const qty = stockMap.get(product.id) ?? 0;
-      tr.appendChild(el("td", "num-cell", String(qty)));
+      const isOrdered = orderedProductIds.has(product.id);
+      const thClass = isOrdered ? "num-cell is-ordered-product" : "num-cell";
+      const th = el("th", thClass);
+      th.scope = "col";
+      th.setAttribute("data-product-id", product.id);
+      const titleDiv = el("div", "prod-col-title", formatProductDisplay(product, product.id));
+      th.appendChild(titleDiv);
+      if (product.requiresColdChain) {
+        th.appendChild(el("span", "cold-chain-badge", "❄ Cold"));
+      }
+      headerRow.appendChild(th);
     }
+    thead.appendChild(headerRow);
 
-    tbody.appendChild(tr);
+    for (const warehouse of warehouses) {
+      const isChosen = chosenWarehouseIds.has(warehouse.id);
+      const tr = el("tr", isChosen ? "is-chosen-warehouse" : undefined);
+      tr.setAttribute("data-warehouse-id", warehouse.id);
+      if (isChosen) {
+        tr.setAttribute("data-chosen", "true");
+      }
+
+      const idTh = el("th", "sticky-col", warehouse.id);
+      idTh.scope = "row";
+      tr.appendChild(idTh);
+
+      tr.appendChild(el("td", undefined, warehouse.city));
+      tr.appendChild(el("td", "num-cell", `${warehouse.distanceKm} km`));
+      tr.appendChild(
+        el(
+          "td",
+          "wh-header-caps",
+          `${warehouse.hasColdStorage ? "✓cold" : "✗cold"} ${warehouse.hasColdFleet ? "✓van" : "✗van"}`,
+        ),
+      );
+
+      for (const product of products) {
+        const isOrdered = orderedProductIds.has(product.id);
+        const alloc = allocatedByKey.get(`${warehouse.id}:${product.id}`) ?? 0;
+        tr.appendChild(renderStockDataCell(warehouse, product, alloc, isOrdered, isChosen));
+      }
+
+      tbody.appendChild(tr);
+    }
   }
 
-  table.appendChild(tbody);
+  table.append(thead, tbody);
   wrapper.replaceChildren(table);
 }
 
@@ -734,6 +903,9 @@ function renderDecisionResponse(payload) {
   fragment.appendChild(metaBlock);
 
   container.replaceChildren(fragment);
+  if (state.products.length > 0 && state.warehouses.length > 0) {
+    renderStockTable(state.products, state.warehouses);
+  }
   focusAndScrollResultHeading();
 }
 
@@ -910,11 +1082,22 @@ function init() {
   const storedDetail = readStoredPreference(DETAIL_STORAGE_KEY, "full");
   applyDetailLevel(storedDetail, false);
 
+  const storedOrientation = readStoredPreference(ORIENTATION_STORAGE_KEY, "products-rows");
+  applyStockOrientation(storedOrientation, false);
+
   const detailButtons = document.querySelectorAll("[data-detail-level]");
   for (const btn of detailButtons) {
     btn.addEventListener("click", () => {
       const targetLevel = btn.getAttribute("data-detail-level") || "full";
       applyDetailLevel(targetLevel, true);
+    });
+  }
+
+  const orientationBtn = document.getElementById("stock-orientation-btn");
+  if (orientationBtn) {
+    orientationBtn.addEventListener("click", () => {
+      const next = state.stockOrientation === "products-rows" ? "warehouses-rows" : "products-rows";
+      applyStockOrientation(next, true);
     });
   }
 
