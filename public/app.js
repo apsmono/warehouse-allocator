@@ -502,8 +502,9 @@ function addOrderLine(initialProductId, initialQuantity) {
   }
 
   const stockHint = el("span", "line-stock-hint");
-  productGroup.append(productHeader, select, stockHint);
+  productGroup.append(productHeader, select);
 
+  const bottomRow = el("div", "line-bottom-row");
   const qtyGroup = el("div", "field-group qty-field-group");
   const qtyLabel = el("label");
   const qtyInput = document.createElement("input");
@@ -516,6 +517,8 @@ function addOrderLine(initialProductId, initialQuantity) {
 
   const removeBtn = el("button", "btn btn-remove", "Remove");
   removeBtn.type = "button";
+
+  bottomRow.append(qtyGroup, stockHint, removeBtn);
 
   const rowRecord = {
     rowEl,
@@ -549,7 +552,7 @@ function addOrderLine(initialProductId, initialQuantity) {
     }
   });
 
-  rowEl.append(productGroup, qtyGroup, removeBtn);
+  rowEl.append(productGroup, bottomRow);
   container.appendChild(rowEl);
   state.lineRows.push(rowRecord);
   updateLineControls();

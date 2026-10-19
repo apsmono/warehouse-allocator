@@ -24,97 +24,104 @@
     </header>
 
     <main class="container main-content">
-      <section class="card order-section" aria-labelledby="order-heading">
-        <div class="section-header">
-          <h2 id="order-heading">1 · Order</h2>
-        </div>
+      <div class="order-column">
+        <section class="card order-section" aria-labelledby="order-heading">
+          <div class="section-header">
+            <h2 id="order-heading">1 · Order</h2>
+          </div>
 
-        <p id="customer-location-note" class="customer-location-note">
-          Delivering to: the customer location. All distances are measured from here.
-        </p>
+          <p id="customer-location-note" class="customer-location-note">
+            Delivering to: the customer location. All distances are measured from here.
+          </p>
 
-        <div class="examples-block" role="group" aria-label="Example orders">
-          <span class="examples-label">Try an example</span>
-          <div class="examples-grid">
-            <div class="example-item">
-              <button
-                type="button"
-                class="btn btn-secondary example-btn"
-                id="example-g03"
-                aria-describedby="example-g03-caption"
-              >
-                Cold-chain trap (G03)
-              </button>
-              <p id="example-g03-caption" class="example-caption">
-                W02 is nearer but has no refrigerated vans
+          <div class="examples-block" role="group" aria-label="Example orders">
+            <span class="examples-label">Try an example</span>
+            <div class="examples-grid">
+              <div class="example-item">
+                <button
+                  type="button"
+                  class="btn btn-secondary example-btn"
+                  id="example-g03"
+                  aria-describedby="example-g03-caption"
+                >
+                  Cold-chain trap (G03)
+                </button>
+                <p id="example-g03-caption" class="example-caption">
+                  W02 is nearer but has no refrigerated vans
+                </p>
+              </div>
+              <div class="example-item">
+                <button
+                  type="button"
+                  class="btn btn-secondary example-btn"
+                  id="example-g09"
+                  aria-describedby="example-g09-caption"
+                >
+                  Split beats far (G09)
+                </button>
+                <p id="example-g09-caption" class="example-caption">
+                  Two near trips beat one far trip
+                </p>
+              </div>
+              <div class="example-item">
+                <button
+                  type="button"
+                  class="btn btn-secondary example-btn"
+                  id="example-g05"
+                  aria-describedby="example-g05-caption"
+                >
+                  Partial (G05)
+                </button>
+                <p id="example-g05-caption" class="example-caption">Not enough vaccine anywhere</p>
+              </div>
+            </div>
+          </div>
+
+          <div id="catalog-error" class="alert alert-error" role="alert" hidden></div>
+
+          <form id="order-form" novalidate>
+            <fieldset class="lines-fieldset">
+              <legend class="sr-only">Order lines</legend>
+              <div id="order-lines" class="order-lines"></div>
+              <div
+                id="duplicate-merge-hints"
+                class="duplicate-hints"
+                aria-live="polite"
+                hidden
+              ></div>
+              <div class="line-actions">
+                <button type="button" id="add-line-btn" class="btn btn-outline">+ Add line</button>
+                <span id="line-count-hint" class="hint-text">1 of 20 lines</span>
+              </div>
+            </fieldset>
+
+            <div class="split-policy-box">
+              <div class="checkbox-row">
+                <input
+                  type="checkbox"
+                  id="allow-split-input"
+                  name="allowSplit"
+                  aria-describedby="split-policy-help"
+                  checked
+                />
+                <label for="allow-split-input">Allow split shipments across warehouses</label>
+              </div>
+              <p id="split-policy-help" class="split-help-text">
+                On: the order may ship from several warehouses when that's the only way to fill it
+                or it's cheaper; each extra shipment adds 20 km. Off: one warehouse ships what it
+                can and the rest is back-ordered.
               </p>
             </div>
-            <div class="example-item">
-              <button
-                type="button"
-                class="btn btn-secondary example-btn"
-                id="example-g09"
-                aria-describedby="example-g09-caption"
-              >
-                Split beats far (G09)
-              </button>
-              <p id="example-g09-caption" class="example-caption">
-                Two near trips beat one far trip
+
+            <div class="form-footer">
+              <p id="order-running-summary" class="order-running-summary">
+                1 line · 10 units · 0 cold-chain products
               </p>
+              <button type="submit" id="submit-btn" class="btn btn-primary">Allocate order</button>
             </div>
-            <div class="example-item">
-              <button
-                type="button"
-                class="btn btn-secondary example-btn"
-                id="example-g05"
-                aria-describedby="example-g05-caption"
-              >
-                Partial (G05)
-              </button>
-              <p id="example-g05-caption" class="example-caption">Not enough vaccine anywhere</p>
-            </div>
-          </div>
-        </div>
-
-        <div id="catalog-error" class="alert alert-error" role="alert" hidden></div>
-
-        <form id="order-form" novalidate>
-          <fieldset class="lines-fieldset">
-            <legend class="sr-only">Order lines</legend>
-            <div id="order-lines" class="order-lines"></div>
-            <div id="duplicate-merge-hints" class="duplicate-hints" aria-live="polite" hidden></div>
-            <div class="line-actions">
-              <button type="button" id="add-line-btn" class="btn btn-outline">+ Add line</button>
-              <span id="line-count-hint" class="hint-text">1 of 20 lines</span>
-            </div>
-          </fieldset>
-
-          <div class="split-policy-box">
-            <div class="checkbox-row">
-              <input
-                type="checkbox"
-                id="allow-split-input"
-                name="allowSplit"
-                aria-describedby="split-policy-help"
-                checked
-              />
-              <label for="allow-split-input">Allow split shipments across warehouses</label>
-            </div>
-            <p id="split-policy-help" class="split-help-text">
-              On: the order may ship from several warehouses when that's the only way to fill it or
-              it's cheaper; each extra shipment adds 20 km. Off: one warehouse ships what it can and
-              the rest is back-ordered.
-            </p>
-          </div>
-
-          <div class="form-footer">
-            <p id="order-running-summary" class="order-running-summary">
-              1 line · 10 units · 0 cold-chain products
-            </p>
-            <button type="submit" id="submit-btn" class="btn btn-primary">Allocate order</button>
-          </div>
-        </form>
-      </section>
+          </form>
+        </section>
+      </div>
 
       <section
         id="result-region"
