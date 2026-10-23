@@ -5,6 +5,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-23
+
+Post-submission review fixes, before the submission email (engine `1.0.2`). Seed data, URL and endpoints unchanged.
+
 ### Security
 - The page served by Vercel's CDN now gets the same security headers as the API (CSP, `X-Frame-Options`, `nosniff`, …) via `vercel.json`; a test keeps the two in sync with helmet.
 - All `GET` API routes are rate-limited (300/min/IP by default, 5× the POST limit); before, only `POST /allocations` was.
