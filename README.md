@@ -31,7 +31,7 @@ Run `npm run dev` and open `http://localhost:3000/` to build an order, inspect t
 
 Key UI features:
 - **Responsive layout:** Stacked single-column view on phone (`< 768 px`, with shipments and alternatives rendered as cards) and tablet (`768–1099 px`), two columns (`1100–1439 px`, sticky order builder on the left + decision on the right), and three columns (`≥ 1440 px`, order · decision · explanation side by side), with the stock reference spanning full width below.
-- **Detail levels (`Simple | Full | Debug`):** `Simple` shows the status badge, summary, plain-arithmetic cost breakdown, and shipments; `Full` (default) adds reasons, compact cold-chain exclusions, alternatives, and saved decision JSON link; `Debug` adds evaluated combinations, overhead, engine version, and an **API call** modal with request/response payloads and **Copy as curl**.
+- **Detail levels (`Simple | Full | Debug`):** `Simple` shows the status badge, summary, plain-arithmetic cost breakdown, and shipments; `Full` (default) adds reasons, compact cold-chain exclusions, alternatives, and saved decision JSON link; `Debug` adds evaluated combinations, cost per shipment, engine version, and an **API call** modal with request/response payloads and **Copy as curl**.
 - **Interactive stock reference & modals:** Products × warehouses matrix (with orientation toggle) that highlights ordered product rows, chosen warehouse columns, and allocated cell quantities (`40 → ships 10`), plus native `<dialog>` modals for **How it decides**, **Warehouse detail** (click any warehouse ID `W01`–`W08`), **Saved decision JSON**, and **API call**.
 
 API quick check (`docs/API.md`):

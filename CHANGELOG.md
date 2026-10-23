@@ -13,6 +13,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
 - Four native `<dialog>` modals (`showModal()` with `Esc`, Close button, backdrop click, body scroll lock, and opener focus restoration): **How it decides** (`#rules-modal`), **Warehouse detail** (`#warehouse-modal`, opened from any warehouse ID button), **Saved decision JSON** (`#saved-decision-modal`), and **API call** (`#api-call-modal` with **Copy as curl**).
 - Responsive 1-, 2-, and 3-column CSS Grid layout (`< 768 px` phone card layout, `768–1099 px` single column, `1100–1439 px` two columns with sticky order card, `≥ 1440 px` three columns separating Order, Decision, and Why), plus GitHub repo and API docs links in the footer.
 
+### Changed
+- Simplified shipment cost wording across the UI and engine explanations (`ENGINE_VERSION = "1.0.1"`) to use "distance" and "20 km per shipment" uniformly.
+
 ## [0.3.0] - 2026-10-18
 
 ### Added
