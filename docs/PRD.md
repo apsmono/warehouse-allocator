@@ -82,8 +82,8 @@ Historical deliveries (38 rows) are in `data/delivery_history.csv`.
 | FR-8 | `GET /api/v1/catalog` returns products, warehouses and stock, so the UI is not hard-coded | Must | M2 |
 | FR-9 | Simple web UI: add/remove order lines, toggle split, submit, show decision, reasons, exclusions and alternatives. Show stock reference | Must | M3 |
 | FR-10 | `GET /api/v1/health` returns app version, git SHA and DB reachability | Must | M2 |
-| FR-11 | **Bonus**: time-aware strategy. With `strategy: "time-aware"` and `dispatchAt {day, time}`, cost uses travel minutes predicted from history (`TRAVEL-MODEL.md`). Each shipment shows predicted minutes, the data source and the sample size | Could | M4 |
-| FR-12 | **Bonus**: `GET /api/v1/travel-model` exposes baselines, multipliers and sample sizes for transparency | Could | M4 |
+| FR-11 | **Bonus**: time-aware strategy. With `strategy: "time-aware"` and `dispatchAt {day, time}`, cost uses travel minutes predicted from history (`TRAVEL-MODEL.md`). Each shipment shows predicted minutes, the data source and the sample size | Could — **not built** | — (dropped 2026-10-19) |
+| FR-12 | **Bonus**: `GET /api/v1/travel-model` exposes baselines, multipliers and sample sizes for transparency | Could — **not built** | — (dropped 2026-10-19) |
 
 ## 7. Non-functional requirements
 

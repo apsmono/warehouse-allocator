@@ -41,13 +41,13 @@ warehouse-allocator/
 │   │   ├── allocate.ts       the algorithm (ALGORITHM.md)
 │   │   ├── eligibility.ts
 │   │   ├── explain.ts        templates → summary / reasons / whyNot
-│   │   ├── travel-model.ts   fit() + predict() (TRAVEL-MODEL.md) — M4
+│   │   ├── travel-model.ts   fit() + predict() (TRAVEL-MODEL.md) — not built
 │   │   ├── types.ts
-│   │   └── version.ts        export const ENGINE_VERSION = "1.0.0"
+│   │   └── version.ts        export const ENGINE_VERSION = "1.0.1"
 │   ├── db/
 │   │   ├── pool.ts           single pg Pool, lazy init
 │   │   ├── catalog.repo.ts   loadSnapshot(): CatalogSnapshot
-│   │   ├── history.repo.ts   M4
+│   │   ├── history.repo.ts   — not built
 │   │   └── decisions.repo.ts insert / getById
 │   ├── api/
 │   │   ├── app.ts            express app factory (no listen) — used by tests and Vercel
@@ -68,7 +68,7 @@ warehouse-allocator/
 
 **Dependency direction:** `api → engine`, `api → db`, `db → engine/types`. The engine never imports
 upward. The API loads the snapshot once per request (8 warehouses, so it is cheap and always fresh).
-In M4 the travel model is fitted once per cold start and cached in module scope.
+The time-aware travel model (not built) would be fitted once per cold start and cached in module scope.
 
 ## 3. Data model (`0001_init.sql`)
 

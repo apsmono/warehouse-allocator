@@ -2,7 +2,7 @@
 
 Chooses which warehouse(s) should fulfil a medical-supply order, and explains why.
 
-> **Status:** core complete and deployed. See `docs/ROADMAP.md`.
+> **Status:** v1, distance strategy. Deployed and frozen for review (see `docs/VERSIONING.md §7`).
 
 This README covers a short description, a walkthrough, and setup, running, testing and deployment.
 The design rationale lives in `docs/` (PRD, ALGORITHM, DECISIONS).
@@ -32,7 +32,7 @@ Run `npm run dev` and open `http://localhost:3000/` to build an order, inspect t
 Key UI features:
 - **Responsive layout:** Stacked single-column view on phone (`< 768 px`, with shipments and alternatives rendered as cards) and tablet (`768–1099 px`), two columns (`1100–1439 px`, sticky order builder on the left + decision on the right), and three columns (`≥ 1440 px`, order · decision · explanation side by side), with the stock reference spanning full width below.
 - **Detail levels (`Simple | Full | Debug`):** `Simple` shows the status badge, summary, plain-arithmetic cost breakdown, and shipments; `Full` (default) adds reasons, compact cold-chain exclusions, alternatives, and saved decision JSON link; `Debug` adds evaluated combinations, cost per shipment, engine version, and an **API call** modal with request/response payloads and **Copy as curl**.
-- **Interactive stock reference & modals:** Products × warehouses matrix (with orientation toggle) that highlights ordered product rows, chosen warehouse columns, and allocated cell quantities (`40 → ships 10`), plus native `<dialog>` modals for **How it decides**, **Warehouse detail** (click any warehouse ID `W01`–`W08`), **Saved decision JSON**, and **API call**.
+- **Interactive stock reference & modals:** Products × warehouses matrix (with orientation toggle), reachable from the **Stock reference** button in the header, that highlights ordered product rows, chosen warehouse columns, and allocated cell quantities (`40 → ships 10`), plus native `<dialog>` modals for **How it decides**, **Warehouse detail** (click any warehouse ID `W01`–`W08`), **Saved decision JSON**, and **API call**.
 
 API quick check (`docs/API.md`):
 ```bash
@@ -42,6 +42,14 @@ curl -s -X POST https://warehouse-allocator-chi.vercel.app/api/v1/allocations \
   -d '{"lines":[{"productId":"P002","quantity":10},{"productId":"P001","quantity":100}]}'
 ```
 Expected G07 outcome: status `FULL` (total cost `75` km), splitting across **W01** (100 × `P001`) and **W04** (10 × `P002`), with **W02** (and **W06**) excluded for `P002` due to no refrigerated fleet (`NO_COLD_FLEET`).
+
+**Not in v1:** the time-aware strategy (choosing by predicted travel time from the delivery history) was
+designed but not built. `strategy: "time-aware"` returns 422 `STRATEGY_NOT_AVAILABLE`. The analysis is in
+`docs/TRAVEL-MODEL.md`.
+
+**Simplification:** cold-chain stock in a warehouse without refrigerated vans (W02, W06) counts as 0 units.
+Moving that stock to a warehouse with refrigerated vans, or hiring a refrigerated van, would need each
+warehouse's exact location and a more detailed cost formula, so v1 does not model it.
 
 ## Test
 ```bash

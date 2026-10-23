@@ -13,8 +13,8 @@ next milestone on its own.
 | Mon 19 | M2 API + DB. **Create Vercel + Neon accounts today** (human step, needs GitHub login) | Antigravity · Arif |
 | Tue 20 | M3 UI + deploy. Deploy a hello-world first, before building the UI | Antigravity |
 | Wed 21 | Review M3 → `v0.3.0` = **core submittable**. **Bonus go/no-go gate (evening)** | Claude · Arif |
-| Thu 22 | M4 bonus (only if the gate said go) | Antigravity |
-| Fri 23 | Review M4 → `v0.4.0`; draft the submission README | Claude · Arif |
+| Thu 22 | M4 = UI/UX polish (time-aware bonus dropped 2026-10-19) | Antigravity |
+| Fri 23 | Review M4 → `v0.4.0` ✓; M5 plan | Claude · Arif |
 | Sat 24 | M5: final README, interview prep, prod smoke test, tag `v1.0.0`, **send the email** | Arif |
 | Sun 25 | Buffer only. No new work | — |
 
@@ -25,7 +25,7 @@ bonus becomes a "next steps" paragraph. A solid core beats a half bonus.
 
 ```
 M0 scaffold ─► M1 engine ─► M2 API+DB ─► M3 UI+deploy ══► (core done, submittable)
-                                                         └─► M4 bonus ─► M5 submit v1.0.0
+                                                         └─► M4 UI/UX ─► M5 submit v1.0.0
 ```
 
 ---
@@ -72,14 +72,11 @@ documented shape · `GET /allocations/not-a-uuid` → 404 · re-running seed cha
 **Accept:** in a fresh incognito window on the production URL, all three example buttons give the
 golden results · `/api/v1/health` → `db: "ok"` · Lighthouse accessibility ≥ 90.
 
-## M4 — Bonus: time-aware strategy → `v0.4.0`, engine `1.1.0` (~4 h)
-- `travel-model.ts` (fit + predict) per TRAVEL-MODEL.md, `history.repo.ts`, `/travel-model` endpoint
-- UI: strategy toggle, day select + time input (shown only when time-aware). Each shipment shows
-  "~53 min (observed, n=2)"
-- Tests: every `golden.json → travelModel.predictions` and `timeAware` case
-
-**Accept:** the P005×350 Mon 08:00 demo picks W05, and its alternatives show W01+W04 · Wed 14:00
-picks W01+W04 · distance-strategy outputs are byte-identical to v0.3.0.
+## M4 — UI/UX polish → `v0.4.0`, engine `1.0.1` ✓
+The time-aware bonus was dropped on 2026-10-19 (gate decision: stay with distance); its design stays in
+ADR-008 and TRAVEL-MODEL.md as "next steps". The slot went to the sample view instead: decision panel with
+Simple/Full/Debug detail, order-builder hints, transposed stock table tied to the decision, four `<dialog>`
+modals, 1/2/3-column responsive layout, and plain cost wording ("distance" + "20 km per shipment").
 
 ## M5 — Submission → `v1.0.0` (~2 h, mostly human)
 - Finalise the repo `README.md` walkthrough against production (ADR-009); fill `submission/README.md`; finalise `submission/ai-collaboration-log.md`; Arif does `submission/interview-prep.md`
@@ -87,6 +84,6 @@ picks W01+W04 · distance-strategy outputs are byte-identical to v0.3.0.
 - Email: URL, repo link, README attached, optional conversation log, cold-start note if Render was used
 
 ## Explicitly not planned (README "next steps" material)
-Stock reservation and concurrency (ADR-006) · selectable objective (ADR-008) · multiple customer
+time-aware strategy (ADR-008, TRAVEL-MODEL.md) · Stock reservation and concurrency (ADR-006) · selectable objective (ADR-008) · multiple customer
 locations with real routing · admin CRUD · auth · ILP for large networks · refitting the model
 offline on real volume.

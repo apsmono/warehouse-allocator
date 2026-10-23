@@ -24,7 +24,7 @@ submission README's "AI-assisted" section.
 | 005 | Per-shipment overhead (20 km-eq / 30 min) | Accepted | M1 |
 | 006 | Decision only, no stock reservation | Accepted (for now) | M5 (README "next steps") |
 | 007 | Deterministic template explanations | Accepted | M1 |
-| 008 | Time-aware objective = vehicle-minutes | Accepted | M4 |
+| 008 | Time-aware objective = vehicle-minutes | Not built | — |
 | 009 | Public repo; two READMEs | Accepted (amended) | First push |
 | 010 | Vanilla HTML UI | Accepted | M3 |
 | 011 | Local Postgres in Docker for development; Neon for online preview | Accepted | M2 |
@@ -145,7 +145,7 @@ acceptable trade.
 API key and cost, and can justify something the engine did not do.
 
 ## ADR-008 Time-aware objective = vehicle-minutes, with the arrival trade-off shown
-**Status.** Accepted (2026-10-16). Applies to M4 (bonus) only.
+**Status.** Accepted (2026-10-16) as the design for a time-aware strategy. **Not built**: the bonus was dropped on 2026-10-19 and v1 is distance-only.
 
 **Context.** The bonus uses delivery history: travel time depends on weekday and hour (metro rush
 hour roughly triples city trips). Once time is in play there are two reasonable objectives:

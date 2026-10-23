@@ -45,7 +45,7 @@ Request:
 Validation (Zod):
 - `lines`: 1–20 items. `productId` must exist in the catalogue. `quantity` integer 1–100 000.
 - `options.allowSplit`: boolean, default `true`.
-- `options.strategy`: `"distance"` (default) | `"time-aware"`. Before M4 ships, `"time-aware"` returns 422 `STRATEGY_NOT_AVAILABLE`.
+- `options.strategy`: `"distance"` (default) | `"time-aware"`. `"time-aware"` is not available in v1 and returns 422 `STRATEGY_NOT_AVAILABLE`.
 - `options.dispatchAt`: `{ day: "Mon".."Sun", time: "HH:MM" }`. **Required iff** strategy is `time-aware`; rejected otherwise.
 - Unknown top-level keys → 422 (strict schema).
 
@@ -65,7 +65,8 @@ feature.
 ## `GET /api/v1/allocations/:id`
 Returns the stored `{ id, createdAt, request, decision }`, or 404. The `:id` must be a UUID; anything else returns 404 (not 500).
 
-## `GET /api/v1/travel-model` (M4)
+## `GET /api/v1/travel-model` (not built)
+Designed for the time-aware bonus, which was not built. The route does not exist in v1 and returns 404.
 ```json
 {
   "fittedFrom": 38,
