@@ -98,7 +98,7 @@ describe("Module import safety and general error handling", () => {
 });
 
 describe("GET /api/v1/health", () => {
-  it("returns 200 with status ok, version, commit, db ok, engineVersion 1.0.0 when ping resolves", async () => {
+  it("returns 200 with status ok, version, commit, db ok, engineVersion 1.0.1 when ping resolves", async () => {
     const { catalogRepo, decisionsRepo } = createStubDeps({
       ping: async () => {},
     });
@@ -116,7 +116,7 @@ describe("GET /api/v1/health", () => {
       version: "0.1.0",
       commit: "a1b2c3d",
       db: "ok",
-      engineVersion: "1.0.0",
+      engineVersion: "1.0.1",
     });
   });
 
@@ -140,7 +140,7 @@ describe("GET /api/v1/health", () => {
       version: "0.1.0",
       commit: "local",
       db: "down",
-      engineVersion: "1.0.0",
+      engineVersion: "1.0.1",
     });
   });
 });

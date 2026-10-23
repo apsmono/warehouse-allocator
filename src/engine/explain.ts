@@ -241,11 +241,11 @@ export function buildReasons(input: ExplainInput): string[] {
     if (singleFullOption && singleFullOption.totalCost > totalCost) {
       const saved = singleFullOption.totalCost - totalCost;
       tradeoffSentences.push(
-        `Each extra shipment costs a fixed ${shipmentOverhead} ${costUnit} (dispatch + receiving); the split still saves ${saved} ${costUnit}.`,
+        `Each extra shipment adds ${shipmentOverhead} ${costUnit} to the cost; splitting still saves ${saved} ${costUnit}.`,
       );
     } else {
       tradeoffSentences.push(
-        `Each extra shipment costs a fixed ${shipmentOverhead} ${costUnit} (dispatch + receiving) to cover the order across ${shipments.length} warehouses.`,
+        `Each extra shipment adds ${shipmentOverhead} ${costUnit} to the cost; this order uses ${shipments.length} shipments.`,
       );
     }
   } else if (shipments.length === 1) {
@@ -264,16 +264,16 @@ export function buildReasons(input: ExplainInput): string[] {
       } else if (runnerUp.totalCost > totalCost) {
         const saved = runnerUp.totalCost - totalCost;
         tradeoffSentences.push(
-          `Single shipment from ${only.warehouseId} costs ${totalCost} ${costUnit} (${only.distanceKm} ${costUnit} travel + ${shipmentOverhead} ${costUnit} dispatch), saving ${saved} ${costUnit} over ${runnerUpLabel} (${runnerUp.totalCost} ${costUnit}).`,
+          `Single shipment from ${only.warehouseId} costs ${totalCost} ${costUnit} (${only.distanceKm} ${costUnit} distance + ${shipmentOverhead} ${costUnit} for the shipment), saving ${saved} ${costUnit} over ${runnerUpLabel} (${runnerUp.totalCost} ${costUnit}).`,
         );
       } else {
         tradeoffSentences.push(
-          `Single shipment from ${only.warehouseId} costs ${totalCost} ${costUnit} (${only.distanceKm} ${costUnit} travel + ${shipmentOverhead} ${costUnit} dispatch), selected ahead of ${runnerUpLabel} (${runnerUp.totalCost} ${costUnit}) by tie-break.`,
+          `Single shipment from ${only.warehouseId} costs ${totalCost} ${costUnit} (${only.distanceKm} ${costUnit} distance + ${shipmentOverhead} ${costUnit} for the shipment), selected ahead of ${runnerUpLabel} (${runnerUp.totalCost} ${costUnit}) by tie-break.`,
         );
       }
     } else {
       tradeoffSentences.push(
-        `Single shipment from ${only.warehouseId} totals ${totalCost} ${costUnit} (${only.distanceKm} ${costUnit} travel + ${shipmentOverhead} ${costUnit} dispatch); no other eligible warehouse can supply this order.`,
+        `Single shipment from ${only.warehouseId} totals ${totalCost} ${costUnit} (${only.distanceKm} ${costUnit} distance + ${shipmentOverhead} ${costUnit} for the shipment); no other eligible warehouse can supply this order.`,
       );
     }
   } else {
