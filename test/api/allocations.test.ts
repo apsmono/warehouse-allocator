@@ -391,6 +391,20 @@ describe("Persistence & catalogue failure resilience and rate limiting", () => {
     expect(post.status).toBe(201);
   });
 
+  it("counts HEAD like GET, since Express runs the GET handler (and its DB query) for it", async () => {
+    const { app, catalogRepo } = createInMemoryDeps({ rateLimitPerMin: 1 });
+
+    for (let i = 0; i < 5; i++) {
+      const res = await request(app).head("/api/v1/catalog");
+      expect(res.status).toBe(200);
+    }
+    expect(catalogRepo.loadSnapshot).toHaveBeenCalledTimes(5);
+
+    const blocked = await request(app).head("/api/v1/catalog");
+    expect(blocked.status).toBe(429);
+    expect(catalogRepo.loadSnapshot).toHaveBeenCalledTimes(5);
+  });
+
   it("logs the route and stack for a programming error, still returning a bare 500", async () => {
     const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     try {
