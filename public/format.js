@@ -142,9 +142,12 @@ export function computeCostBreakdown(decision) {
   const shipmentOverhead = Number(decision?.meta?.shipmentOverhead ?? 20);
   const totalCost = Number(decision?.totalCost ?? 0);
   const travelDistances = shipments.map((s) => Number(s.distanceKm));
-  const travelSum = travelDistances.reduce((sum, km) => sum + km, 0);
+  // Round to 0.1 like the engine, so decimal distances don't print as 0.30000000000000004
+  const roundCost = (value) => Math.round(value * 10) / 10;
+  const travelSum = roundCost(travelDistances.reduce((sum, km) => sum + km, 0));
   const shipmentCount = shipments.length;
-  const computedTotal = shipmentCount === 0 ? 0 : travelSum + shipmentCount * shipmentOverhead;
+  const computedTotal =
+    shipmentCount === 0 ? 0 : roundCost(travelSum + shipmentCount * shipmentOverhead);
 
   if (shipmentCount === 0) {
     return {

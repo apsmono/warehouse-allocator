@@ -261,10 +261,16 @@ async function openSavedDecisionModal(decisionId, openerEl) {
         frag.appendChild(el("p", "modal-meta-line", `Created ${data.createdAt}`));
       }
       frag.appendChild(el("pre", "raw-json-pre", JSON.stringify(data, null, 2)));
-    } else if (state.lastResponse) {
-      frag.appendChild(el("pre", "raw-json-pre", JSON.stringify(state.lastResponse, null, 2)));
     } else {
-      frag.appendChild(el("p", "alert alert-error", "Could not load stored decision."));
+      // Don't fall back to the in-memory response: this dialog promises the stored record
+      const apiMessage = data && data.error && data.error.message ? `: ${data.error.message}` : "";
+      frag.appendChild(
+        el(
+          "p",
+          "alert alert-error",
+          `Could not load the stored decision (HTTP ${res.status}${apiMessage}).`,
+        ),
+      );
     }
 
     const linkRow = el("p", "modal-link-row");

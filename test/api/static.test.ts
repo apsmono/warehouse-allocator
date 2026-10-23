@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import express from "express";
 import request from "supertest";
 import { describe, expect, it, vi } from "vitest";
 import { createApp } from "../../src/api/app.js";
@@ -41,6 +42,34 @@ describe("Static UI serving and CSP hygiene", () => {
     const formatRes = await request(app).get("/format.js");
     expect(formatRes.status).toBe(200);
     expect(formatRes.headers["content-type"]).toMatch(/javascript/i);
+  });
+
+  it("vercel.json gives the CDN-served page the same security headers helmet gives the API", async () => {
+    // On Vercel, public/ is served by the CDN, not Express, so helmet never sees GET /.
+    const vercelConfig = JSON.parse(
+      readFileSync(resolve(import.meta.dirname, "../../vercel.json"), "utf8"),
+    ) as { headers?: { source: string; headers: { key: string; value: string }[] }[] };
+    const catchAll = vercelConfig.headers?.find((h) => h.source === "/(.*)");
+    expect(catchAll).toBeDefined();
+    const configured = Object.fromEntries(
+      (catchAll?.headers ?? []).map(({ key, value }) => [key.toLowerCase(), value]),
+    );
+
+    const { catalogRepo, decisionsRepo } = createStubDeps();
+    const res = await request(createApp({ catalogRepo, decisionsRepo })).get("/api/v1/health");
+    const plain = await request(express().get("/", (_req, r) => void r.send("x"))).get("/");
+    const helmetHeaders = Object.fromEntries(
+      Object.entries(res.headers).filter(
+        // Vercel already sends a stronger HSTS on every response
+        ([key]) =>
+          !(key in plain.headers) &&
+          key !== "strict-transport-security" &&
+          !key.startsWith("ratelimit"),
+      ),
+    );
+
+    expect(configured["content-security-policy"]).toBeDefined();
+    expect(configured).toEqual(helmetHeaders);
   });
 
   it("without publicDir, GET / returns 404 NOT_FOUND in the API error shape", async () => {
@@ -90,7 +119,7 @@ describe("Static UI serving and CSP hygiene", () => {
       version: "0.2.0",
       commit: "local",
       db: "ok",
-      engineVersion: "1.0.1",
+      engineVersion: "1.0.2",
     });
   });
 

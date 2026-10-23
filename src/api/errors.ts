@@ -63,14 +63,18 @@ function isBodyParserError(err: unknown): err is { type?: string } {
   return typeof err === "object" && err !== null && "type" in err;
 }
 
-export function extractErrorCode(err: unknown): string {
-  if (
+function hasErrorCode(err: unknown): err is { code: string } {
+  return (
     typeof err === "object" &&
     err !== null &&
     "code" in err &&
     typeof err.code === "string" &&
     err.code.length > 0
-  ) {
+  );
+}
+
+export function extractErrorCode(err: unknown): string {
+  if (hasErrorCode(err)) {
     return err.code;
   }
   return err instanceof Error ? err.name : "UnknownError";
@@ -82,7 +86,7 @@ export function notFoundHandler(_req: Request, _res: Response, next: NextFunctio
 
 export function errorHandler(
   err: unknown,
-  _req: Request,
+  req: Request,
   res: Response<ApiErrorBody>,
   _next: NextFunction,
 ): void {
@@ -150,7 +154,14 @@ export function errorHandler(
   }
 
   const reason = extractErrorCode(err);
-  console.error(`Unhandled internal error (${reason}).`);
+  const route = `${req.method} ${req.originalUrl.split("?")[0]}`;
+  if (!hasErrorCode(err) && err instanceof Error) {
+    // A programming error: no connection details in it, and without the stack it can't be traced.
+    console.error(`Unhandled internal error (${reason}) on ${route}.`, err.stack);
+  } else {
+    // DB and system errors: code only, their messages can contain the connection string.
+    console.error(`Unhandled internal error (${reason}) on ${route}.`);
+  }
   res.status(500).json({
     error: {
       code: "INTERNAL",

@@ -5,6 +5,28 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-23
+
+Post-submission review fixes, before the submission email (engine `1.0.2`). Seed data, URL and endpoints unchanged.
+
+### Security
+- The page served by Vercel's CDN now gets the same security headers as the API (CSP, `X-Frame-Options`, `nosniff`, …) via `vercel.json`; a test keeps the two in sync with helmet.
+- All `GET` API routes are rate-limited (300/min/IP by default, 5× the POST limit); before, only `POST /allocations` was.
+- CI runs with a read-only `GITHUB_TOKEN`.
+
+### Fixed
+- Engine `1.0.2` (wording and rounding only; no seed-data allocation or cost changes):
+  - On an exact cost tie the split summary said "cheaper than one shipment"; it now says "same cost … but the longest trip is shorter".
+  - `whyNot` said "one extra shipment" for alternatives with 2+ extra shipments (e.g. P001×651).
+  - The cold-chain sentence read "only  have both…" when no warehouse qualifies.
+  - Decimal distances printed as `19.700000000000003 km`; costs, deltas and savings are rounded to 0.1 (UI cost breakdown too).
+  - `1 units` → `1 unit`, with matching `is`/`are`.
+- The saved-decision dialog showed the in-browser response when the stored one failed to load; it now shows the error.
+- Unhandled programming errors are logged with route and stack (DB and system errors still log the code only); a failed health check is logged with its code.
+
+### Changed
+- CI runs the database integration tests against a Postgres 18 service.
+
 ## [1.0.0] - 2026-10-23
 
 ### Added

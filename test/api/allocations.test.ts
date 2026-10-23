@@ -364,4 +364,54 @@ describe("Persistence & catalogue failure resilience and rate limiting", () => {
     const catRes = await request(app).get("/api/v1/catalog");
     expect(catRes.status).toBe(200);
   });
+
+  it("limits GETs to 5x the POST limit across catalog, health and decision lookups", async () => {
+    const { app } = createInMemoryDeps({ rateLimitPerMin: 1 });
+
+    for (const path of [
+      "/api/v1/catalog",
+      "/api/v1/health",
+      "/api/v1/catalog",
+      "/api/v1/health",
+      "/api/v1/catalog",
+    ]) {
+      const res = await request(app).get(path);
+      expect(res.status, path).toBe(200);
+    }
+
+    const blocked = await request(app).get(
+      "/api/v1/allocations/00000000-0000-4000-8000-000000000001",
+    );
+    expect(blocked.status).toBe(429);
+    expect(blocked.body.error.code).toBe("RATE_LIMITED");
+
+    const post = await request(app)
+      .post("/api/v1/allocations")
+      .send({ lines: [{ productId: "P001", quantity: 10 }] });
+    expect(post.status).toBe(201);
+  });
+
+  it("logs the route and stack for a programming error, still returning a bare 500", async () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const { app } = createInMemoryDeps({
+        loadSnapshotImpl: async () => {
+          throw new TypeError("Cannot read properties of undefined (reading 'rows')");
+        },
+      });
+
+      const res = await request(app)
+        .post("/api/v1/allocations?debug=1")
+        .send({ lines: [{ productId: "P001", quantity: 10 }] });
+
+      expect(res.status).toBe(500);
+      expect(res.body).toEqual({ error: { code: "INTERNAL", message: "Internal error" } });
+      expect(consoleErrorSpy).toHaveBeenCalledOnce();
+      const [line, stack] = consoleErrorSpy.mock.calls[0] ?? [];
+      expect(line).toBe("Unhandled internal error (TypeError) on POST /api/v1/allocations.");
+      expect(String(stack)).toContain("TypeError: Cannot read properties of undefined");
+    } finally {
+      consoleErrorSpy.mockRestore();
+    }
+  });
 });

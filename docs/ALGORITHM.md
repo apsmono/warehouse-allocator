@@ -1,6 +1,6 @@
-# Allocation Algorithm — spec v1.0.1
+# Allocation Algorithm — spec v1.0.2
 
-`ENGINE_VERSION = "1.0.1"`. Bump it (see VERSIONING.md) whenever any rule below changes the output
+`ENGINE_VERSION = "1.0.2"`. Bump it (see VERSIONING.md) whenever any rule below changes the output
 for any input. **This file is read-only for the executor.** If code and spec disagree, the spec
 wins. If the spec looks wrong, stop and say so in REPORT.md.
 
@@ -61,7 +61,8 @@ in order of increasing size, then lexicographic warehouse IDs:
    `w` in fill order until the line is satisfied or `S` runs out. Leftover = shortfall.
 3. **Discard `S` if any warehouse in it received zero units.** It is dominated: the same fill is
    possible without it, at lower cost.
-4. Score: `filled = Σ allocated units`, `cost = Σ_{w∈S} (OVERHEAD + travel(w))`.
+4. Score: `filled = Σ allocated units`, `cost = Σ_{w∈S} (OVERHEAD + travel(w))`, rounded to 0.1 (distances are
+   `numeric(6,1)`). Deltas and savings in the explanations are rounded the same way.
 
 With 8 warehouses there are at most 255 subsets, so exhaustive search is trivially fast and
 **provably optimal** for the stated objective. Record `evaluatedCombinations` (subsets that
@@ -115,18 +116,23 @@ type Decision = {
 - FULL, one warehouse: `"Ship everything from {W} ({city}, {km} km)."`
 - FULL, split: `"Split into {n} shipments: {W1} and {W2}…, because no single eligible warehouse holds the full order."`
   (If a single warehouse *could* fill the order but the split is cheaper, use instead:
-  `"Split into {n} nearby shipments; cheaper than one shipment from {Wsingle} ({km} km)."`)
+  `"Split into {n} nearby shipments; cheaper than one shipment from {Wsingle} ({km} km)."`
+  If the costs are equal, the split won on `maxTravel`, so use:
+  `"Split into {n} nearby shipments; same cost as one shipment from {Wsingle} ({km} km), but the longest trip is shorter."`)
 - PARTIAL: `"Can fill {filled} of {requested} units; {missing} units of {product} are short across all eligible warehouses."`
 
 `reasons[]`, in this order, each included only when relevant:
 1. Cold chain: `"{product} needs a cold chain; only W04, W07, W08 have both refrigerated storage and refrigerated vans."`
+   If no warehouse qualifies: `"…; no warehouse has both refrigerated storage and refrigerated vans."`
 2. Exclusion callout: `"W02 holds {q} {product} but has no refrigerated vans, so it cannot deliver it safely."`
 3. Choice: `"{W} is the nearest warehouse that can supply {items}."`
 4. Split trade-off: `"Each extra shipment adds {overhead} {unit} to the cost; splitting still saves {saved} {unit}."`
 5. Shortfall: `"Total eligible stock of {product} is {n}; {missing} units should be back-ordered."`
 6. Time-aware only: `"At {day} {time}, {W} is predicted at {min} min ({source}, n={k})."`
 
-`alternatives[].whyNot`: `"+{delta} {unit}: {one extra shipment | longer trip | fills {k} fewer units}"`.
+`alternatives[].whyNot`: `"+{delta} {unit}: {one extra shipment | {k} extra shipments | longer trip | fills {k} fewer units}"`.
+
+Unit counts use the singular for 1 (`1 unit`, `fills 1 fewer unit`).
 
 Wording may be polished, but each sentence must be generated from structured data. **No string is
 hand-written per scenario.**

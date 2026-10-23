@@ -1,6 +1,7 @@
 import { evaluateEligibility } from "./eligibility.js";
 import { StrategyNotAvailableError } from "./errors.js";
 import { buildAlternativeWhyNot, buildReasons, buildSummary } from "./explain.js";
+import { roundCost } from "./numbers.js";
 import type {
   AllocationStatus,
   Alternative,
@@ -212,6 +213,7 @@ export function allocate(
         items: itemsByWarehouse.get(w.id)!,
       });
     }
+    totalCost = roundCost(totalCost);
 
     const sortedIdsKey = subset
       .map((w) => w.id)
