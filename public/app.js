@@ -310,6 +310,10 @@ function openApiCallModal(openerEl) {
   const resPre = el("pre", "raw-json-pre", JSON.stringify(resPayload, null, 2));
   frag.appendChild(resPre);
 
+  frag.appendChild(el("p", "sub-label", "cURL"));
+  const curlPre = el("pre", "raw-json-pre", curlCmd);
+  frag.appendChild(curlPre);
+
   const actionsRow = el("div", "debug-actions-row");
   const copyBtn = el("button", "btn btn-primary btn-sm", "Copy as curl");
   copyBtn.type = "button";
@@ -317,7 +321,7 @@ function openApiCallModal(openerEl) {
   copyFeedback.setAttribute("aria-live", "polite");
 
   copyBtn.addEventListener("click", () => {
-    void copyTextToClipboard(curlCmd, reqPre).then((ok) => {
+    void copyTextToClipboard(curlCmd, curlPre).then((ok) => {
       copyFeedback.textContent = ok ? "Copied" : "Select and copy above";
     });
   });
@@ -819,6 +823,9 @@ function renderValidationError(details, fallbackMessage) {
   }
 
   container.replaceChildren(alertBox);
+  if (state.products.length > 0 && state.warehouses.length > 0) {
+    renderStockTable(state.products, state.warehouses);
+  }
   focusAndScrollResultHeading();
 }
 
@@ -829,6 +836,9 @@ function renderErrorMessage(message) {
   }
   const alertBox = el("div", "alert alert-error", message);
   container.replaceChildren(alertBox);
+  if (state.products.length > 0 && state.warehouses.length > 0) {
+    renderStockTable(state.products, state.warehouses);
+  }
   focusAndScrollResultHeading();
 }
 
@@ -1033,13 +1043,16 @@ async function copyTextToClipboard(text, fallbackPre) {
     }
   }
   if (fallbackPre && typeof window.getSelection === "function") {
+    const parentDetails = fallbackPre.closest("details");
+    if (parentDetails) {
+      parentDetails.open = true;
+    }
     const selection = window.getSelection();
     if (selection) {
       const range = document.createRange();
       range.selectNodeContents(fallbackPre);
       selection.removeAllRanges();
       selection.addRange(range);
-      return true;
     }
   }
   return false;
@@ -1069,7 +1082,7 @@ function renderDecisionResponse(payload) {
   const breakdown = computeCostBreakdown(decision);
   const costLine = el("p", "decision-cost");
   costLine.appendChild(document.createTextNode("Cost "));
-  const totalStrong = el("strong", undefined, `${breakdown.computedTotal} ${breakdown.costUnit}`);
+  const totalStrong = el("strong", undefined, `${decision.totalCost} ${breakdown.costUnit}`);
   costLine.appendChild(totalStrong);
   if (breakdown.shipmentCount > 0) {
     costLine.appendChild(document.createTextNode(` = ${breakdown.formulaRightSide}`));
@@ -1173,17 +1186,20 @@ function renderDecisionResponse(payload) {
   const inlineJsonSummary = el("summary", undefined, "Request & response JSON");
   const inlineReqPre = el("pre", "raw-json-pre", JSON.stringify(reqPayload, null, 2));
   const inlineResPre = el("pre", "raw-json-pre", JSON.stringify(payload, null, 2));
+  const inlineCurlPre = el("pre", "raw-json-pre", curlCmd);
   inlineJsonDetails.append(
     inlineJsonSummary,
     el("p", "sub-label", "Request JSON"),
     inlineReqPre,
     el("p", "sub-label", "Response JSON"),
     inlineResPre,
+    el("p", "sub-label", "cURL"),
+    inlineCurlPre,
   );
 
   inlineCopyBtn.addEventListener("click", () => {
-    void copyTextToClipboard(curlCmd, inlineReqPre).then((ok) => {
-      inlineCopyStatus.textContent = ok ? "Copied" : "Open API call to copy";
+    void copyTextToClipboard(curlCmd, inlineCurlPre).then((ok) => {
+      inlineCopyStatus.textContent = ok ? "Copied" : "Select and copy below";
     });
   });
 
@@ -1245,6 +1261,8 @@ async function submitCurrentOrder() {
     options: { allowSplit },
   };
   state.lastRequest = requestBody;
+  state.lastResponse = null;
+  state.lastHttpStatus = null;
 
   setSubmittingState(true);
   try {
