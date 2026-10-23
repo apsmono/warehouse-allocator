@@ -135,6 +135,9 @@ re-running it resets demo stock to the seed values.
 1. CI leak check: set the `LEAK_MARKERS` repository secret (`gh secret set LEAK_MARKERS -R apsmono/warehouse-allocator < .private/leak-markers.txt`).
 2. Neon: create a PostgreSQL 18 database in the Singapore region (`ap-southeast-1`), copy the **pooled** URL, and run `npm run db:migrate && npm run db:seed` against Neon via a shell `DATABASE_URL` override (keeping local `.env` pointed at `postgresql://wa:wa@localhost:5433/warehouse_allocator`).
 3. Vercel: import `apsmono/warehouse-allocator` with framework preset **Other** (build/output left at defaults so `vercel.json` governs them and pins `sin1`), set `DATABASE_URL` to the Neon pooled URL for **Production and Preview** with `sslmode=verify-full` and `channel_binding=require`, and turn **Vercel Authentication off** under Deployment Protection.
-4. `.github/workflows/keepalive.yml`: weekly cron (`17 2 * * 1`, Mon 02:17 UTC) plus `workflow_dispatch` that curls `<PROD_URL>/api/v1/health` with retries (`--retry 3 --retry-delay 20 --retry-all-errors`) to surface breakage and keep Neon warm.
-5. Fallback if Vercel misbehaves with Express: Render free web service. **It sleeps after 15 min idle
+4. `.github/workflows/keepalive.yml`: weekly cron (`17 2 * * 1`, Mon 02:17 UTC) plus `workflow_dispatch` that curls `<PROD_URL>/api/v1/health` with retries (`--retry 3 --retry-delay 20 --retry-all-errors`) to surface breakage. It does not keep Neon warm: Neon
+   scales to zero after a few idle minutes, so the first request after idle waits a second or two for it to wake.
+5. Security headers: Vercel serves `public/` from its CDN, so helmet never sees the page. `vercel.json` `headers`
+   repeats helmet's set for every path; `test/api/static.test.ts` fails if the two drift apart.
+6. Fallback if Vercel misbehaves with Express: Render free web service. **It sleeps after 15 min idle
    (~1 min cold start), which must then be stated in the submission email.**
