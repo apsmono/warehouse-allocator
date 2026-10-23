@@ -390,4 +390,28 @@ describe("Persistence & catalogue failure resilience and rate limiting", () => {
       .send({ lines: [{ productId: "P001", quantity: 10 }] });
     expect(post.status).toBe(201);
   });
+
+  it("logs the route and stack for a programming error, still returning a bare 500", async () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const { app } = createInMemoryDeps({
+        loadSnapshotImpl: async () => {
+          throw new TypeError("Cannot read properties of undefined (reading 'rows')");
+        },
+      });
+
+      const res = await request(app)
+        .post("/api/v1/allocations?debug=1")
+        .send({ lines: [{ productId: "P001", quantity: 10 }] });
+
+      expect(res.status).toBe(500);
+      expect(res.body).toEqual({ error: { code: "INTERNAL", message: "Internal error" } });
+      expect(consoleErrorSpy).toHaveBeenCalledOnce();
+      const [line, stack] = consoleErrorSpy.mock.calls[0] ?? [];
+      expect(line).toBe("Unhandled internal error (TypeError) on POST /api/v1/allocations.");
+      expect(String(stack)).toContain("TypeError: Cannot read properties of undefined");
+    } finally {
+      consoleErrorSpy.mockRestore();
+    }
+  });
 });

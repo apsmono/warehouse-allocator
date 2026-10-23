@@ -123,7 +123,9 @@ describe("GET /api/v1/health", () => {
   it("returns 503 with status degraded and db down when ping rejects", async () => {
     const { catalogRepo, decisionsRepo } = createStubDeps({
       ping: async () => {
-        throw new Error("Connection refused");
+        throw Object.assign(new Error("connect ECONNREFUSED 10.0.0.1:5432"), {
+          code: "ECONNREFUSED",
+        });
       },
     });
     const app = createApp({
@@ -133,15 +135,23 @@ describe("GET /api/v1/health", () => {
       commit: "local",
     });
 
-    const res = await request(app).get("/api/v1/health");
-    expect(res.status).toBe(503);
-    expect(res.body).toEqual({
-      status: "degraded",
-      version: "0.1.0",
-      commit: "local",
-      db: "down",
-      engineVersion: "1.0.2",
-    });
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const res = await request(app).get("/api/v1/health");
+      expect(res.status).toBe(503);
+      expect(res.body).toEqual({
+        status: "degraded",
+        version: "0.1.0",
+        commit: "local",
+        db: "down",
+        engineVersion: "1.0.2",
+      });
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "Health check: database ping failed (ECONNREFUSED).",
+      );
+    } finally {
+      consoleErrorSpy.mockRestore();
+    }
   });
 });
 

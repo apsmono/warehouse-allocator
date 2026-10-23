@@ -1,6 +1,7 @@
 import { Router } from "express";
 import type { CatalogRepository } from "../../db/catalog.repo.js";
 import { ENGINE_VERSION } from "../../engine/index.js";
+import { extractErrorCode } from "../errors.js";
 
 export type HealthRouterDeps = {
   catalogRepo: Pick<CatalogRepository, "ping">;
@@ -21,7 +22,8 @@ export function createHealthRouter(deps: HealthRouterDeps): Router {
         db: "ok",
         engineVersion: ENGINE_VERSION,
       });
-    } catch {
+    } catch (err) {
+      console.error(`Health check: database ping failed (${extractErrorCode(err)}).`);
       res.status(503).json({
         status: "degraded",
         version: deps.version,
