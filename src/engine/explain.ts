@@ -1,4 +1,5 @@
 import type { ExclusionWithQuantity } from "./eligibility.js";
+import { formatUnits, roundCost } from "./numbers.js";
 import type {
   AllocationStatus,
   CatalogSnapshot,
@@ -64,6 +65,7 @@ export function buildSummary(input: ExplainInput): string {
     snapshot,
     shipments,
     shortfalls,
+    totalCost,
     allSurvivors,
     getTotalEligibleStock,
   } = input;
@@ -74,28 +76,30 @@ export function buildSummary(input: ExplainInput): string {
   );
 
   if (status === "UNFULFILLABLE") {
-    return `Cannot fulfil order: 0 of ${totalRequested} requested units available across eligible warehouses.`;
+    return `Cannot fulfil order: 0 of ${totalRequested} requested ${totalRequested === 1 ? "unit" : "units"} available across eligible warehouses.`;
   }
 
   if (status === "PARTIAL") {
     const shortfallParts = shortfalls
-      .map((sf) => `${sf.missing} units of ${sf.productId}`)
+      .map((sf) => `${formatUnits(sf.missing)} of ${sf.productId}`)
       .join(", ");
+    const shortVerb = shortfalls.length === 1 && shortfalls[0]!.missing === 1 ? "is" : "are";
+    const filledPart = `Can fill ${totalFilled} of ${formatUnits(totalRequested)}`;
     if (!allowSplit) {
       const allCoveredAcrossNetwork = shortfalls.every(
         (sf) => getTotalEligibleStock(sf.productId) >= sf.requested,
       );
       if (allCoveredAcrossNetwork) {
-        return `Can fill ${totalFilled} of ${totalRequested} units from a single warehouse; ${shortfallParts} are short due to the single-shipment limit.`;
+        return `${filledPart} from a single warehouse; ${shortfallParts} ${shortVerb} short due to the single-shipment limit.`;
       }
       const anyCappedBySingleShipment = shortfalls.some(
         (sf) => sf.allocated < getTotalEligibleStock(sf.productId),
       );
       if (anyCappedBySingleShipment) {
-        return `Can fill ${totalFilled} of ${totalRequested} units from a single warehouse; ${shortfallParts} are short under the single-shipment limit and available stock.`;
+        return `${filledPart} from a single warehouse; ${shortfallParts} ${shortVerb} short under the single-shipment limit and available stock.`;
       }
     }
-    return `Can fill ${totalFilled} of ${totalRequested} units; ${shortfallParts} are short across all eligible warehouses.`;
+    return `${filledPart}; ${shortfallParts} ${shortVerb} short across all eligible warehouses.`;
   }
 
   if (shipments.length === 1) {
@@ -111,7 +115,11 @@ export function buildSummary(input: ExplainInput): string {
     const singleId = singleFullOption.warehouses[0]!;
     const warehouseObj = snapshot.warehouses.find((w) => w.id === singleId);
     const km = warehouseObj?.distanceKm ?? 0;
-    return `Split into ${shipments.length} nearby shipments; cheaper than one shipment from ${singleId} (${km} km).`;
+    if (singleFullOption.totalCost > totalCost) {
+      return `Split into ${shipments.length} nearby shipments; cheaper than one shipment from ${singleId} (${km} km).`;
+    }
+    // Equal cost: the split won the maxTravel tie-break (ALGORITHM.md Step 4).
+    return `Split into ${shipments.length} nearby shipments; same cost as one shipment from ${singleId} (${km} km), but the longest trip is shorter.`;
   }
 
   const warehouseIds = shipments.map((s) => s.warehouseId);
@@ -164,14 +172,19 @@ export function buildReasons(input: ExplainInput): string[] {
     .map((line) => line.productId)
     .filter((productId) => productById.get(productId)?.requiresColdChain === true);
 
+  const coldCapableText =
+    coldCapableIds.length === 0
+      ? "no warehouse has both refrigerated storage and refrigerated vans"
+      : coldCapableIds.length === 1
+        ? `only ${coldCapableIds[0]} has both refrigerated storage and refrigerated vans`
+        : `only ${coldCapableIds.join(", ")} have both refrigerated storage and refrigerated vans`;
+
   const coldChainSentences: string[] = [];
   if (coldProductIds.length === 1) {
-    coldChainSentences.push(
-      `${coldProductIds[0]} needs a cold chain; only ${coldCapableIds.join(", ")} have both refrigerated storage and refrigerated vans.`,
-    );
+    coldChainSentences.push(`${coldProductIds[0]} needs a cold chain; ${coldCapableText}.`);
   } else if (coldProductIds.length > 1) {
     coldChainSentences.push(
-      `Each of ${formatWarehouseList(coldProductIds)} needs a cold chain; only ${coldCapableIds.join(", ")} have both refrigerated storage and refrigerated vans.`,
+      `Each of ${formatWarehouseList(coldProductIds)} needs a cold chain; ${coldCapableText}.`,
     );
   }
 
@@ -239,7 +252,7 @@ export function buildReasons(input: ExplainInput): string[] {
       (cand) => cand.warehouses.length === 1 && cand.unitsFilled === totalRequested,
     );
     if (singleFullOption && singleFullOption.totalCost > totalCost) {
-      const saved = singleFullOption.totalCost - totalCost;
+      const saved = roundCost(singleFullOption.totalCost - totalCost);
       tradeoffSentences.push(
         `Each extra shipment adds ${shipmentOverhead} ${costUnit} to the cost; splitting still saves ${saved} ${costUnit}.`,
       );
@@ -259,10 +272,10 @@ export function buildReasons(input: ExplainInput): string[] {
       if (runnerUp.unitsFilled < chosenUnitsFilled) {
         const moreUnits = chosenUnitsFilled - runnerUp.unitsFilled;
         tradeoffSentences.push(
-          `Single shipment from ${only.warehouseId} fills ${chosenUnitsFilled} units (${totalCost} ${costUnit}), which is ${moreUnits} more than runner-up ${runnerUpLabel} (${runnerUp.unitsFilled} units at ${runnerUp.totalCost} ${costUnit}).`,
+          `Single shipment from ${only.warehouseId} fills ${formatUnits(chosenUnitsFilled)} (${totalCost} ${costUnit}), which is ${moreUnits} more than runner-up ${runnerUpLabel} (${formatUnits(runnerUp.unitsFilled)} at ${runnerUp.totalCost} ${costUnit}).`,
         );
       } else if (runnerUp.totalCost > totalCost) {
-        const saved = runnerUp.totalCost - totalCost;
+        const saved = roundCost(runnerUp.totalCost - totalCost);
         tradeoffSentences.push(
           `Single shipment from ${only.warehouseId} costs ${totalCost} ${costUnit} (${only.distanceKm} ${costUnit} distance + ${shipmentOverhead} ${costUnit} for the shipment), saving ${saved} ${costUnit} over ${runnerUpLabel} (${runnerUp.totalCost} ${costUnit}).`,
         );
@@ -286,11 +299,11 @@ export function buildReasons(input: ExplainInput): string[] {
     const totalEligible = getTotalEligibleStock(sf.productId);
     if (!allowSplit && sf.allocated < totalEligible) {
       shortfallSentences.push(
-        `Total eligible stock of ${sf.productId} is ${totalEligible}, but single-shipment mode caps fill at ${sf.allocated}; ${sf.missing} units should be back-ordered.`,
+        `Total eligible stock of ${sf.productId} is ${totalEligible}, but single-shipment mode caps fill at ${sf.allocated}; ${formatUnits(sf.missing)} should be back-ordered.`,
       );
     } else {
       shortfallSentences.push(
-        `Total eligible stock of ${sf.productId} is ${totalEligible}; ${sf.missing} units should be back-ordered.`,
+        `Total eligible stock of ${sf.productId} is ${totalEligible}; ${formatUnits(sf.missing)} should be back-ordered.`,
       );
     }
   }
@@ -356,21 +369,22 @@ export function buildAlternativeWhyNot(
   altWarehouseCount: number,
   costUnit: CostUnit,
 ): { delta: number; whyNot: string } {
-  const delta = altTotalCost - chosenTotalCost;
+  const delta = roundCost(altTotalCost - chosenTotalCost);
   const deltaPrefix = `${delta >= 0 ? `+${delta}` : `${delta}`} ${costUnit}`;
 
   if (altUnitsFilled < chosenUnitsFilled) {
     const fewer = chosenUnitsFilled - altUnitsFilled;
     return {
       delta,
-      whyNot: `${deltaPrefix}: fills ${fewer} fewer units`,
+      whyNot: `${deltaPrefix}: fills ${fewer} fewer ${fewer === 1 ? "unit" : "units"}`,
     };
   }
 
   if (altWarehouseCount > chosenShipmentCount) {
+    const extra = altWarehouseCount - chosenShipmentCount;
     return {
       delta,
-      whyNot: `${deltaPrefix}: one extra shipment`,
+      whyNot: `${deltaPrefix}: ${extra === 1 ? "one extra shipment" : `${extra} extra shipments`}`,
     };
   }
 

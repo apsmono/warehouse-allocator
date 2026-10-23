@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { allocate } from "../../src/engine/index.js";
-import type { Options, OrderLine } from "../../src/engine/types.js";
+import type { CatalogSnapshot, Options, OrderLine, Warehouse } from "../../src/engine/types.js";
 import { loadSeedSnapshot } from "../helpers/seed-snapshot.js";
 
 type GoldenCase = {
@@ -171,5 +171,105 @@ describe("Explanation layer (ALGORITHM.md §3/§4 — R1)", () => {
     expect(d3.summary).toContain("single-shipment limit and available stock");
     expect(d3.reasons.length).toBeGreaterThanOrEqual(2);
     expect(d3.reasons.length).toBeLessThanOrEqual(6);
+  });
+});
+
+describe("Explanation edge cases (engine 1.0.2)", () => {
+  const snapshot = loadSeedSnapshot();
+
+  function plainWarehouse(id: string, distanceKm: number): Warehouse {
+    return { id, city: `City${id}`, distanceKm, hasColdStorage: false, hasColdFleet: false };
+  }
+
+  function splitVsSingleSnapshot(nearKm: [number, number]): CatalogSnapshot {
+    return {
+      products: [
+        { id: "P001", name: "Gloves", category: "Medical Supplies", requiresColdChain: false },
+      ],
+      warehouses: [
+        plainWarehouse("W01", nearKm[0]),
+        plainWarehouse("W02", nearKm[1]),
+        plainWarehouse("W03", 40),
+      ],
+      stock: [
+        { warehouseId: "W01", productId: "P001", quantity: 50 },
+        { warehouseId: "W02", productId: "P001", quantity: 50 },
+        { warehouseId: "W03", productId: "P001", quantity: 100 },
+      ],
+    };
+  }
+
+  it("on an exact cost tie, the split summary says 'same cost', not 'cheaper'", () => {
+    // (10 + 20) + (10 + 20) = 60 = 40 + 20: the split wins on the shorter longest trip.
+    const decision = allocate(
+      { lines: [{ productId: "P001", quantity: 100 }] },
+      splitVsSingleSnapshot([10, 10]),
+    );
+
+    expect(decision.shipments.map((s) => s.warehouseId)).toEqual(["W01", "W02"]);
+    expect(decision.summary).toBe(
+      "Split into 2 nearby shipments; same cost as one shipment from W03 (40 km), but the longest trip is shorter.",
+    );
+    expect(decision.reasons.join(" ")).not.toContain("saves");
+  });
+
+  it("rounds decimal-distance costs to 0.1 in totals, deltas and sentences", () => {
+    const decision = allocate(
+      { lines: [{ productId: "P001", quantity: 100 }] },
+      splitVsSingleSnapshot([0.1, 0.2]),
+    );
+
+    expect(decision.totalCost).toBe(40.3);
+    expect(decision.alternatives[0]).toMatchObject({
+      warehouses: ["W03"],
+      totalCost: 60,
+      delta: 19.7,
+    });
+    expect(decision.alternatives[0]?.whyNot).toBe("+19.7 km: longer trip");
+    expect(decision.reasons).toContain(
+      "Each extra shipment adds 20 km to the cost; splitting still saves 19.7 km.",
+    );
+  });
+
+  it("says no warehouse can keep the cold chain when none has both storage and vans", () => {
+    const noColdSnapshot: CatalogSnapshot = {
+      products: [
+        { id: "P002", name: "Vaccine", category: "Pharmaceutical", requiresColdChain: true },
+      ],
+      warehouses: [{ ...plainWarehouse("W02", 12), hasColdStorage: true }],
+      stock: [{ warehouseId: "W02", productId: "P002", quantity: 30 }],
+    };
+    const decision = allocate({ lines: [{ productId: "P002", quantity: 1 }] }, noColdSnapshot);
+
+    expect(decision.status).toBe("UNFULFILLABLE");
+    expect(decision.reasons[0]).toBe(
+      "P002 needs a cold chain; no warehouse has both refrigerated storage and refrigerated vans.",
+    );
+    expect(decision.summary).toBe(
+      "Cannot fulfil order: 0 of 1 requested unit available across eligible warehouses.",
+    );
+  });
+
+  it("counts extra shipments in whyNot instead of always saying 'one'", () => {
+    // P001×651 on seed: chosen W03+W05 (2 shipments); runner-up uses 4.
+    const decision = allocate({ lines: [{ productId: "P001", quantity: 651 }] }, snapshot);
+
+    expect(decision.shipments.map((s) => s.warehouseId)).toEqual(["W03", "W05"]);
+    expect(decision.alternatives.map((a) => a.whyNot)).toEqual([
+      "+12 km: 2 extra shipments",
+      "+25 km: one extra shipment",
+    ]);
+  });
+
+  it("uses the singular for a 1-unit shortfall", () => {
+    // P002×109 on seed: eligible total is 108.
+    const decision = allocate({ lines: [{ productId: "P002", quantity: 109 }] }, snapshot);
+
+    expect(decision.summary).toBe(
+      "Can fill 108 of 109 units; 1 unit of P002 is short across all eligible warehouses.",
+    );
+    expect(decision.reasons).toContain(
+      "Total eligible stock of P002 is 108; 1 unit should be back-ordered.",
+    );
   });
 });

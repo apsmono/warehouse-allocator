@@ -43,7 +43,7 @@ warehouse-allocator/
 │   │   ├── explain.ts        templates → summary / reasons / whyNot
 │   │   ├── travel-model.ts   fit() + predict() (TRAVEL-MODEL.md) — not built
 │   │   ├── types.ts
-│   │   └── version.ts        export const ENGINE_VERSION = "1.0.1"
+│   │   └── version.ts        export const ENGINE_VERSION = "1.0.2"
 │   ├── db/
 │   │   ├── pool.ts           single pg Pool, lazy init
 │   │   ├── catalog.repo.ts   loadSnapshot(): CatalogSnapshot

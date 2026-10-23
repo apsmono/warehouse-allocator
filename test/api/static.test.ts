@@ -90,7 +90,7 @@ describe("Static UI serving and CSP hygiene", () => {
       version: "0.2.0",
       commit: "local",
       db: "ok",
-      engineVersion: "1.0.1",
+      engineVersion: "1.0.2",
     });
   });
 

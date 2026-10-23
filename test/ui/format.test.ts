@@ -94,6 +94,24 @@ describe("public/format.js — pure UI display helpers", () => {
       expect(breakdown.computedTotal).toBe(0);
       expect(breakdown.text).toBe("0 km");
     });
+
+    it("rounds decimal distances to 0.1 like the engine", () => {
+      const decision = {
+        totalCost: 40.3,
+        costUnit: "km",
+        meta: { shipmentOverhead: 20 },
+        shipments: [
+          { warehouseId: "W01", city: "A", distanceKm: 0.1, items: [] },
+          { warehouseId: "W02", city: "B", distanceKm: 0.2, items: [] },
+        ],
+      };
+      const breakdown = computeCostBreakdown(decision as never);
+      expect(breakdown.travelSum).toBe(0.3);
+      expect(breakdown.computedTotal).toBe(40.3);
+      expect(breakdown.text).toBe(
+        "40.3 km = 0.3 km distance (0.1 + 0.2) + 40 km for 2 shipments (20 km each)",
+      );
+    });
   });
 
   describe("splitWhyNot (#4)", () => {
