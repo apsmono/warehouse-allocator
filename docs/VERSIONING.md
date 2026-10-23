@@ -18,7 +18,7 @@ DB schema version = the highest applied file in `db/migrations/` (tracked in `sc
 | `v0.1.0` | M1 | Engine complete; all distance + no-split golden tests pass (no API yet) |
 | `v0.2.0` | M2 | API + Postgres + decision log; runs locally |
 | `v0.3.0` | M3 | UI + **deployed**. Core requirement done (submittable) |
-| `v0.4.0` | M4 | Bonus: time-aware strategy (engine `1.1.0`) |
+| `v0.4.0` | M4 | UI/UX polish of the sample view; plain cost wording (engine `1.0.1`). The time-aware bonus was dropped |
 | `v1.0.0` | M5 | **The submitted build.** Frozen |
 | `v1.0.x` | post | Bug fixes only during the ~30-day review window |
 

@@ -17,9 +17,14 @@
             Picks the warehouse(s) that fulfil a medical-supply order, and says why.
           </p>
         </div>
-        <button type="button" id="how-it-decides-btn" class="btn btn-outline">
-          How it decides
-        </button>
+        <div class="header-actions">
+          <button type="button" id="stock-reference-btn" class="btn btn-outline">
+            Stock reference
+          </button>
+          <button type="button" id="how-it-decides-btn" class="btn btn-outline">
+            How it decides
+          </button>
+        </div>
       </div>
     </header>
 
@@ -159,7 +164,7 @@
 
       <section class="card stock-section" aria-labelledby="stock-heading">
         <div class="section-header">
-          <h2 id="stock-heading">3 · Stock reference</h2>
+          <h2 id="stock-heading" tabindex="-1">3 · Stock reference</h2>
           <button
             type="button"
             id="stock-orientation-btn"
@@ -171,7 +176,8 @@
         </div>
         <p class="section-note">
           Distances are from the customer location. Cold-chain products require a warehouse with
-          both refrigerated storage and refrigerated vans.
+          both refrigerated storage and refrigerated vans. Struck-through numbers are cold-chain
+          stock held where there are no refrigerated vans; for simplicity they count as 0.
         </p>
         <div
           id="stock-table-wrapper"
@@ -222,7 +228,10 @@
             <li>
               <strong>Cold chain:</strong> a cold-chain product only ships from a warehouse with
               both refrigerated storage and refrigerated vans. Warehouses holding stock without a
-              refrigerated fleet (such as W02 and W06) are excluded and reported.
+              refrigerated fleet (such as W02 and W06) are excluded and reported. For simplicity,
+              that stock counts as 0 units. Moving it to a warehouse with refrigerated vans, or
+              hiring a refrigerated van, would need each warehouse's exact location and a more
+              detailed cost formula, so the app does not model it.
             </li>
             <li>
               <strong>Cost:</strong> the distance from each chosen warehouse to the customer, plus

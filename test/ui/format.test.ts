@@ -80,6 +80,12 @@ describe("public/format.js — pure UI display helpers", () => {
       expect(computeCostBreakdown(d09).text).toBe(
         "75 km = 35 km distance (5 + 30) + 40 km for 2 shipments (20 km each)",
       );
+
+      const g05 = golden.distance.find((c) => c.id === "G05")!;
+      const d05 = allocate({ lines: g05.lines }, snapshot, g05.options);
+      expect(computeCostBreakdown(d05).text).toBe(
+        "285 km = 225 km distance (30 + 45 + 150) + 60 km for 3 shipments (20 km each)",
+      );
     });
 
     it("handles zero shipments (UNFULFILLABLE) gracefully", () => {

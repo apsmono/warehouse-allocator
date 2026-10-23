@@ -1,4 +1,5 @@
-# Travel-time Model (Bonus, M4) — spec v1.0.0
+# Travel-time Model (Bonus, not built) — spec v1.0.0
+> **Status:** analysis only. The time-aware strategy was dropped on 2026-10-19; v1 is distance-only. The findings below are real and feed the "next steps".
 
 A small, explainable proof of concept. **Not ML.** 38 rows cannot support anything fancier, and the
 reviewer must be able to follow every number.
@@ -9,7 +10,7 @@ Source: `data/delivery_history.csv`, normalised from the original attachment (th
 Mac Roman encoded, used CR line endings, put day and time in one quoted field, and used `—` for an
 empty note). Normalised columns: `delivery_id,warehouse_id,day,time,duration_min,note`.
 
-Findings (computed 2026-10-16; the M4 implementation must reproduce them):
+Findings (computed 2026-10-16):
 
 | Pattern | Evidence |
 |---|---|

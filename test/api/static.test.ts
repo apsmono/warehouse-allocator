@@ -93,4 +93,20 @@ describe("Static UI serving and CSP hygiene", () => {
       engineVersion: "1.0.1",
     });
   });
+
+  it("index.html has the Stock reference header button and the cold-chain simplification note", () => {
+    const html = readFileSync(resolve(publicDir, "index.html"), "utf8").replace(/\s+/g, " ");
+    const headerSlice = html.match(/<header\b[^>]*>[\s\S]*?<\/header>/i)?.[0] ?? "";
+    expect(headerSlice).toContain('id="stock-reference-btn"');
+    expect(headerSlice).toContain('id="how-it-decides-btn"');
+
+    const stockHeadingTag = html.match(/<[^>]*\bid="stock-heading"[^>]*>/i)?.[0] ?? "";
+    expect(stockHeadingTag).toContain('tabindex="-1"');
+
+    const rulesModalSlice =
+      html.match(/<dialog\b[^>]*\bid="rules-modal"[\s\S]*?<\/dialog>/i)?.[0] ?? "";
+    expect(rulesModalSlice).toContain("counts as 0 units");
+
+    expect(html).toContain("for simplicity they count as 0");
+  });
 });

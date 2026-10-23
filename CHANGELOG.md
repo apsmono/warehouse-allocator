@@ -5,6 +5,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-23
+
+### Added
+- **Stock reference** button in the header scrolls to the stock table and focuses its heading (honours reduced motion).
+- How it decides, the stock table note and the README say that cold-chain stock without refrigerated vans counts as 0, and why.
+- Tests for the header button, the cold-chain note and the G05 cost line.
+
+### Changed
+- Docs mark the time-aware bonus (FR-11/12, ADR-008, travel model) as not built; spec and architecture show engine `1.0.1`.
+
 ## [0.4.0] - 2026-10-23
 
 ### Added

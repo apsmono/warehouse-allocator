@@ -376,6 +376,25 @@ function focusAndScrollResultHeading() {
   }
 }
 
+function scrollToStockReference() {
+  const heading = document.getElementById("stock-heading");
+  if (!heading) {
+    return;
+  }
+
+  const prefersReducedMotion =
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  heading.focus({ preventScroll: true });
+  if (typeof heading.scrollIntoView === "function") {
+    heading.scrollIntoView({
+      behavior: prefersReducedMotion ? "auto" : "smooth",
+      block: "start",
+    });
+  }
+}
+
 function formatProductLabel(product) {
   return formatProductDisplay(product, product.id);
 }
@@ -1396,6 +1415,13 @@ function init() {
   if (howBtn) {
     howBtn.addEventListener("click", () => {
       openModalDialog("rules-modal", howBtn);
+    });
+  }
+
+  const stockRefBtn = document.getElementById("stock-reference-btn");
+  if (stockRefBtn) {
+    stockRefBtn.addEventListener("click", () => {
+      scrollToStockReference();
     });
   }
 

@@ -1,6 +1,6 @@
-# Allocation Algorithm — spec v1.0.0
+# Allocation Algorithm — spec v1.0.1
 
-`ENGINE_VERSION = "1.0.0"`. Bump it (see VERSIONING.md) whenever any rule below changes the output
+`ENGINE_VERSION = "1.0.1"`. Bump it (see VERSIONING.md) whenever any rule below changes the output
 for any input. **This file is read-only for the executor.** If code and spec disagree, the spec
 wins. If the spec looks wrong, stop and say so in REPORT.md.
 
@@ -51,6 +51,7 @@ With the seed data, the exclusions that actually occur are W02 and W06 for P002/
 - `distance` strategy: `travel(w) = w.distanceKm`, `OVERHEAD = 20`.
 - `time-aware` strategy: `travel(w) = travelModel.predict(w, dispatchAt).minutes` (an integer, see
   TRAVEL-MODEL.md), `OVERHEAD = 30`.
+  _(Not built in v1: returns 422 `STRATEGY_NOT_AVAILABLE`.)_
 
 ### Step 3: Enumerate and allocate
 For every non-empty subset `S` of candidates (if `allowSplit === false`, subsets of size 1 only),
