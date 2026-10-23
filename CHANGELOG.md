@@ -5,6 +5,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-23
+
 ### Added
 - Pure display formatting module (`public/format.js`) with JSDoc type checking and unit tests (`test/ui/format.test.ts`), covering product labels (`P00X · Name`), cold-chain exclusion mapping, alternative `whyNot` splitting, plain-arithmetic cost breakdowns across all golden cases, shippable stock calculation, duplicate line detection, stock cell descriptors, warehouse decision roles, and `curl` command generation.
 - Decision panel detail toggle (`Simple | Full | Debug`, persisted in `localStorage`), status badge hint (`all units allocated` / shortfall count), plain-arithmetic cost breakdown, compact cold-chain exclusions table, de-duplicated alternative `whyNot` column, and focus/scroll management on `#result-heading`.
