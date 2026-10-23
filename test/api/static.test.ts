@@ -37,6 +37,10 @@ describe("Static UI serving and CSP hygiene", () => {
     const jsRes = await request(app).get("/app.js");
     expect(jsRes.status).toBe(200);
     expect(jsRes.headers["content-type"]).toMatch(/javascript/i);
+
+    const formatRes = await request(app).get("/format.js");
+    expect(formatRes.status).toBe(200);
+    expect(formatRes.headers["content-type"]).toMatch(/javascript/i);
   });
 
   it("without publicDir, GET / returns 404 NOT_FOUND in the API error shape", async () => {
@@ -64,6 +68,9 @@ describe("Static UI serving and CSP hygiene", () => {
 
     const appJs = readFileSync(resolve(publicDir, "app.js"), "utf8");
     expect(appJs).not.toMatch(/\binnerHTML\b/);
+
+    const formatJs = readFileSync(resolve(publicDir, "format.js"), "utf8");
+    expect(formatJs).not.toMatch(/\binnerHTML\b/);
   });
 
   it("/api/v1/health still answers when publicDir is set", async () => {
@@ -83,7 +90,7 @@ describe("Static UI serving and CSP hygiene", () => {
       version: "0.2.0",
       commit: "local",
       db: "ok",
-      engineVersion: "1.0.0",
+      engineVersion: "1.0.1",
     });
   });
 });

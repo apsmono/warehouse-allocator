@@ -121,7 +121,7 @@ type Decision = {
 1. Cold chain: `"{product} needs a cold chain; only W04, W07, W08 have both refrigerated storage and refrigerated vans."`
 2. Exclusion callout: `"W02 holds {q} {product} but has no refrigerated vans, so it cannot deliver it safely."`
 3. Choice: `"{W} is the nearest warehouse that can supply {items}."`
-4. Split trade-off: `"Each extra shipment costs a fixed {overhead} {unit} (dispatch + receiving); the split still saves {x} {unit}."`
+4. Split trade-off: `"Each extra shipment adds {overhead} {unit} to the cost; splitting still saves {saved} {unit}."`
 5. Shortfall: `"Total eligible stock of {product} is {n}; {missing} units should be back-ordered."`
 6. Time-aware only: `"At {day} {time}, {W} is predicted at {min} min ({source}, n={k})."`
 
