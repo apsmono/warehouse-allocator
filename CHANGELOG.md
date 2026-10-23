@@ -11,7 +11,7 @@ Post-submission review fixes, before the submission email (engine `1.0.2`). Seed
 
 ### Security
 - The page served by Vercel's CDN now gets the same security headers as the API (CSP, `X-Frame-Options`, `nosniff`, …) via `vercel.json`; a test keeps the two in sync with helmet.
-- All `GET` API routes are rate-limited (300/min/IP by default, 5× the POST limit); before, only `POST /allocations` was.
+- All `GET` and `HEAD` API routes are rate-limited (300/min/IP by default, 5× the POST limit); before, only `POST /allocations` was.
 - CI runs with a read-only `GITHUB_TOKEN`.
 
 ### Fixed

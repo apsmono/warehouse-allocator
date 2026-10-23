@@ -12,7 +12,7 @@ JSON only. No auth. All errors use one shape:
 | 413 | `PAYLOAD_TOO_LARGE` | Body > 10 KB |
 | 404 | `NOT_FOUND` | Unknown route or allocation id |
 | 422 | `VALIDATION_FAILED` | Schema or business validation failed |
-| 429 | `RATE_LIMITED` | > 60 POST/min/IP, or > 300 GET/min/IP across all `GET` routes. Counters are in memory, so on Vercel each function instance counts separately |
+| 429 | `RATE_LIMITED` | > 60 POST/min/IP, or > 300 GET or HEAD requests/min/IP across all `GET` routes. Counters are in memory, so on Vercel each function instance counts separately |
 | 500 | `INTERNAL` | Anything else. Never leak stack traces or SQL |
 
 ---

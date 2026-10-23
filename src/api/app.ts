@@ -42,7 +42,8 @@ export function createApp(deps: AppDeps): Express {
       limit: readRateLimitPerMin,
       standardHeaders: true,
       legacyHeaders: false,
-      skip: (req) => req.method !== "GET",
+      // HEAD runs the GET handler too, so it counts
+      skip: (req) => req.method !== "GET" && req.method !== "HEAD",
       handler: (_req, _res, next) => {
         next(new RateLimitedError("Too many requests, please try again later"));
       },
