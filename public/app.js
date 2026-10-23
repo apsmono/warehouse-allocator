@@ -1162,7 +1162,7 @@ function renderDecisionResponse(payload) {
   const debugMeta = el(
     "p",
     "debug-meta-line",
-    `Evaluated combinations ${decision.meta.evaluatedCombinations} · overhead ${decision.meta.shipmentOverhead} ${decision.costUnit} · engine ${decision.meta.engineVersion}`,
+    `Evaluated combinations ${decision.meta.evaluatedCombinations} · ${decision.meta.shipmentOverhead} ${decision.costUnit} per shipment · engine ${decision.meta.engineVersion}`,
   );
   debugPanel.appendChild(debugMeta);
 

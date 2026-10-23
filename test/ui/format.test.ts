@@ -73,11 +73,13 @@ describe("public/format.js — pure UI display helpers", () => {
     it("formats single and split shipment arithmetic cleanly", () => {
       const g03 = golden.distance.find((c) => c.id === "G03")!;
       const d03 = allocate({ lines: g03.lines }, snapshot, g03.options);
-      expect(computeCostBreakdown(d03).text).toBe("50 km = 30 km travel + 1 × 20 km dispatch");
+      expect(computeCostBreakdown(d03).text).toBe("50 km = 30 km distance + 20 km for 1 shipment");
 
       const g09 = golden.distance.find((c) => c.id === "G09")!;
       const d09 = allocate({ lines: g09.lines }, snapshot, g09.options);
-      expect(computeCostBreakdown(d09).text).toBe("75 km = 5 + 30 km travel + 2 × 20 km dispatch");
+      expect(computeCostBreakdown(d09).text).toBe(
+        "75 km = 35 km distance (5 + 30) + 40 km for 2 shipments (20 km each)",
+      );
     });
 
     it("handles zero shipments (UNFULFILLABLE) gracefully", () => {

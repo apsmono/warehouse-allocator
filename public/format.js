@@ -160,8 +160,10 @@ export function computeCostBreakdown(decision) {
     };
   }
 
-  const travelExpr = travelDistances.join(" + ");
-  const formulaRightSide = `${travelExpr} ${costUnit} travel + ${shipmentCount} × ${shipmentOverhead} ${costUnit} dispatch`;
+  const formulaRightSide =
+    shipmentCount === 1
+      ? `${travelSum} ${costUnit} distance + ${shipmentOverhead} ${costUnit} for 1 shipment`
+      : `${travelSum} ${costUnit} distance (${travelDistances.join(" + ")}) + ${shipmentCount * shipmentOverhead} ${costUnit} for ${shipmentCount} shipments (${shipmentOverhead} ${costUnit} each)`;
   return {
     totalCost,
     computedTotal,

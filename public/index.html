@@ -108,8 +108,8 @@
               </div>
               <p id="split-policy-help" class="split-help-text">
                 On: the order may ship from several warehouses when that's the only way to fill it
-                or it's cheaper; each extra shipment adds 20 km. Off: one warehouse ships what it
-                can and the rest is back-ordered.
+                or it's cheaper; each extra shipment adds 20 km to the cost. Off: one warehouse
+                ships what it can and the rest is back-ordered.
               </p>
             </div>
 
@@ -225,8 +225,9 @@
               refrigerated fleet (such as W02 and W06) are excluded and reported.
             </li>
             <li>
-              <strong>Cost:</strong> travel distance (km) plus a fixed 20 km overhead for each
-              shipment (dispatch, paperwork, and hospital receiving check).
+              <strong>Cost:</strong> the distance from each chosen warehouse to the customer, plus
+              20 km for every shipment. Example: one shipment from W04 (30 km) costs 30 + 20 = 50
+              km. So splitting an order only wins when it saves more than 20 km per extra shipment.
             </li>
             <li>
               <strong>Ranking:</strong> fill the most units first, then lowest total cost, then the
@@ -236,8 +237,9 @@
             <li>
               <strong>Split policy:</strong> when split shipments are allowed (default), an order
               may ship from several warehouses when that's the only way to fill it or when splitting
-              is cheaper (each extra shipment adds 20 km). When off, a single warehouse ships what
-              it can and any remaining units are reported as <code>PARTIAL</code> (back-ordered).
+              is cheaper (each extra shipment adds 20 km to the cost). When off, a single warehouse
+              ships what it can and any remaining units are reported as <code>PARTIAL</code>
+              (back-ordered).
             </li>
           </ol>
           <p class="modal-note">All distances are measured from the single customer location.</p>
