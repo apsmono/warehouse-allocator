@@ -84,6 +84,6 @@ modals, 1/2/3-column responsive layout, and plain cost wording ("distance" + "20
 - Email: URL, repo link, README attached, optional conversation log, cold-start note if Render was used
 
 ## Explicitly not planned (README "next steps" material)
-time-aware strategy (ADR-008, TRAVEL-MODEL.md) · Stock reservation and concurrency (ADR-006) · selectable objective (ADR-008) · multiple customer
-locations with real routing · admin CRUD · auth · ILP for large networks · refitting the model
-offline on real volume.
+Time-aware strategy, with a selectable objective (ADR-008, TRAVEL-MODEL.md) · Stock reservation and
+concurrency (ADR-006) · multiple customer locations with real routing · admin CRUD · auth · ILP for
+large networks · refitting the model offline on real volume.

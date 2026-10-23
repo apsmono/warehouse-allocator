@@ -49,9 +49,9 @@ With the seed data, the exclusions that actually occur are W02 and W06 for P002/
 
 ### Step 2: Travel cost per warehouse
 - `distance` strategy: `travel(w) = w.distanceKm`, `OVERHEAD = 20`.
-  _(Not built in v1: the time-aware strategy returns 422 STRATEGY_NOT_AVAILABLE.)_
 - `time-aware` strategy: `travel(w) = travelModel.predict(w, dispatchAt).minutes` (an integer, see
   TRAVEL-MODEL.md), `OVERHEAD = 30`.
+  _(Not built in v1: returns 422 `STRATEGY_NOT_AVAILABLE`.)_
 
 ### Step 3: Enumerate and allocate
 For every non-empty subset `S` of candidates (if `allowSplit === false`, subsets of size 1 only),
