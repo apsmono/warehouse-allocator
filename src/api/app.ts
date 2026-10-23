@@ -1,8 +1,9 @@
 import express, { type Express } from "express";
+import { rateLimit } from "express-rate-limit";
 import helmet from "helmet";
 import type { CatalogRepository } from "../db/catalog.repo.js";
 import type { DecisionsRepository } from "../db/decisions.repo.js";
-import { errorHandler, notFoundHandler } from "./errors.js";
+import { RateLimitedError, errorHandler, notFoundHandler } from "./errors.js";
 import { createAllocationsRouter } from "./routes/allocations.js";
 import { createCatalogRouter } from "./routes/catalog.js";
 import { createHealthRouter } from "./routes/health.js";
@@ -13,6 +14,7 @@ export type AppDeps = {
   version?: string;
   commit?: string;
   rateLimitPerMin?: number;
+  readRateLimitPerMin?: number;
   publicDir?: string;
 };
 
@@ -30,6 +32,22 @@ export function createApp(deps: AppDeps): Express {
   const version = deps.version ?? "0.1.0";
   const commit = deps.commit ?? "local";
   const rateLimitPerMin = deps.rateLimitPerMin ?? 60;
+  const readRateLimitPerMin = deps.readRateLimitPerMin ?? rateLimitPerMin * 5;
+
+  // Every GET reaches the database; POST /allocations has its own, stricter limiter.
+  app.use(
+    "/api/v1",
+    rateLimit({
+      windowMs: 60_000,
+      limit: readRateLimitPerMin,
+      standardHeaders: true,
+      legacyHeaders: false,
+      skip: (req) => req.method !== "GET",
+      handler: (_req, _res, next) => {
+        next(new RateLimitedError("Too many requests, please try again later"));
+      },
+    }),
+  );
 
   app.use(
     "/api/v1/health",
