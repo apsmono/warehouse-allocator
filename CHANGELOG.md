@@ -5,6 +5,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-23
+
 ### Added
 - **Stock reference** button in the header scrolls to the stock table and focuses its heading (honours reduced motion).
 - How it decides, the stock table note and the README say that cold-chain stock without refrigerated vans counts as 0, and why.
