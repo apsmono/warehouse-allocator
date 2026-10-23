@@ -176,7 +176,8 @@
         </div>
         <p class="section-note">
           Distances are from the customer location. Cold-chain products require a warehouse with
-          both refrigerated storage and refrigerated vans.
+          both refrigerated storage and refrigerated vans. Struck-through numbers are cold-chain
+          stock held where there are no refrigerated vans; for simplicity they count as 0.
         </p>
         <div
           id="stock-table-wrapper"
@@ -227,7 +228,10 @@
             <li>
               <strong>Cold chain:</strong> a cold-chain product only ships from a warehouse with
               both refrigerated storage and refrigerated vans. Warehouses holding stock without a
-              refrigerated fleet (such as W02 and W06) are excluded and reported.
+              refrigerated fleet (such as W02 and W06) are excluded and reported. For simplicity,
+              that stock counts as 0 units. Moving it to a warehouse with refrigerated vans, or
+              hiring a refrigerated van, would need each warehouse's exact location and a more
+              detailed cost formula, so the app does not model it.
             </li>
             <li>
               <strong>Cost:</strong> the distance from each chosen warehouse to the customer, plus
